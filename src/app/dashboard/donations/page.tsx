@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +15,8 @@ import { RequireAccess } from "@/components/shared/require-access";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useOrgRows, useSession } from "@/hooks/use-org";
 import { downloadText, formatDate, formatMoney, titleCase, toCsv } from "@/lib/format";
+import { EmbedButtonsPanel } from "@/components/donations/embed-buttons";
+import { startStripeCheckout } from "@/lib/stripe/checkout-client";
 import { donationSchema, type DonationFormValues } from "@/lib/validations/schemas";
 import { useDemoStore } from "@/stores/demo-store";
 import type { Donation } from "@/types/models";
@@ -41,6 +43,9 @@ function DonationLedger() {
     if (to && donation.date.slice(0, 10) > to) return false;
     return true;
   }), [donations, programId, from, to]);
+  useEffect(() => {
+    if (params.get("canceled") === "1") toast.message("Checkout was canceled. No gift was recorded.");
+  }, [params]);
   const completed = filtered.filter((donation) => donation.status === "completed").reduce((sum, donation) => sum + donation.amountCents, 0);
   const sources = ["one_time", "recurring", "corporate", "in_kind"].map((type, index) => ({
     name: titleCase(type),
@@ -52,9 +57,10 @@ function DonationLedger() {
       <div className="grid gap-5">
         <PageHeader
           title="Donations"
-          description="Simulated gifts only. Completed amounts update fundraising metrics. No card numbers are collected."
+          description="Card and bank gifts use Stripe Checkout. Checks, cash, and in-kind gifts are entered by staff. Completed gifts update the dashboard."
           actions={allowed("donations.manage") ? <Button onClick={() => { setEditing(null); setOpen(true); }}><Plus /> Record donation</Button> : null}
         />
+        <EmbedButtonsPanel />
         <div className="grid gap-3 lg:grid-cols-[220px_1fr]">
           <article className="rounded-xl border bg-card p-4">
             <p className="text-xs text-muted-foreground">Completed in view</p>
@@ -104,7 +110,7 @@ function DonationLedger() {
                   <td className="px-3 py-2">{formatDate(donation.date)}</td>
                   <td className="px-3 py-2">{titleCase(donation.type)}</td>
                   <td className="px-3 py-2">{programs.find((program) => program.id === donation.programId)?.name ?? "Unrestricted"}</td>
-                  <td className="px-3 py-2">{titleCase(donation.method)}</td>
+                  <td className="px-3 py-2">{methodLabel(donation.method)}</td>
                   <td className="px-3 py-2"><StatusBadge value={donation.status} /></td>
                   <td className="px-3 py-2">
                     <Button variant="ghost" size="sm" onClick={() => setReceipt(donation)}>Receipt</Button>
@@ -120,7 +126,7 @@ function DonationLedger() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Sample receipt</DialogTitle>
-              <DialogDescription>Preview only. This is not a tax receipt and no payment was processed.</DialogDescription>
+              <DialogDescription>{receipt?.reference.startsWith("cs_") ? "Paid through Stripe. This preview is not a tax receipt." : "Staff-entered record. This preview is not a tax receipt."}</DialogDescription>
             </DialogHeader>
             {receipt ? (
               <div className="text-sm">
@@ -138,34 +144,82 @@ function DonationLedger() {
   );
 }
 
+function methodLabel(method: string) {
+  if (method === "ach") return "ACH";
+  if (method === "card") return "Card";
+  return titleCase(method);
+}
+
 function DonationDialog({ open, onOpenChange, donation }: { open: boolean; onOpenChange: (open: boolean) => void; donation?: Donation | null }) {
   const donors = useOrgRows("donors");
   const programs = useOrgRows("programs");
-  const { orgId } = useSession();
+  const { orgId, organization } = useSession();
   const saveDonation = useDemoStore((state) => state.saveDonation);
   const form = useForm<DonationFormValues>({
     resolver: zodResolver(donationSchema),
-    values: {
+    defaultValues: {
+      donorId: "",
+      amount: 50,
+      date: new Date().toISOString().slice(0, 10),
+      type: "one_time",
+      programId: "",
+      method: "card",
+      reference: "",
+      status: "completed",
+      inKindDescription: "",
+    },
+  });
+  const method = form.watch("method");
+  const payWithStripe = !donation && (method === "card" || method === "ach");
+  useEffect(() => {
+    if (!open) return;
+    form.reset({
       donorId: donation?.donorId ?? donors[0]?.id ?? "",
       amount: donation ? donation.amountCents / 100 : 50,
       date: donation?.date.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
       type: donation?.type ?? "one_time",
       programId: donation?.programId ?? "",
-      method: donation?.method ?? "card_sim",
+      method: donation?.method ?? "card",
       reference: donation?.reference ?? "",
       status: donation?.status ?? "completed",
       inKindDescription: donation?.inKindDescription ?? "",
-    },
-  });
+    });
+  }, [open, donation, donors, form]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{donation ? "Edit donation" : "Record donation"}</DialogTitle>
-          <DialogDescription>Choose simulated card, ACH, check, cash, or in-kind. Do not enter a real card number.</DialogDescription>
+          <DialogDescription>Card and bank gifts open Stripe Checkout. Checks, cash, and in-kind gifts are recorded here. Do not enter a card number.</DialogDescription>
         </DialogHeader>
-        <form className="grid gap-3" onSubmit={form.handleSubmit((values) => {
+        <form className="grid gap-3" onSubmit={form.handleSubmit(async (values) => {
           if (!orgId) return;
+          const methodValue = values.type === "in_kind" ? "in_kind" : values.method;
+          if (!donation && (methodValue === "card" || methodValue === "ach")) {
+            if (values.type === "recurring" || values.type === "one_time" || values.type === "corporate") {
+              const donor = donors.find((item) => item.id === values.donorId);
+              if (!donor?.email) {
+                toast.error("This donor needs an email before Stripe Checkout.");
+                return;
+              }
+              try {
+                await startStripeCheckout({
+                  organizationId: orgId,
+                  name: donor.name,
+                  email: donor.email,
+                  amountCents: Math.round(values.amount * 100),
+                  programId: values.programId || null,
+                  type: values.type,
+                  method: methodValue,
+                  donorId: donor.id,
+                  returnTo: "dashboard",
+                });
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Stripe Checkout is unavailable.");
+              }
+            }
+            return;
+          }
           const now = new Date().toISOString();
           const result = saveDonation({
             id: donation?.id ?? "",
@@ -175,8 +229,8 @@ function DonationDialog({ open, onOpenChange, donation }: { open: boolean; onOpe
             date: new Date(values.date).toISOString(),
             type: values.type,
             programId: values.programId || null,
-            method: values.method,
-            reference: values.reference || `SIM-${Date.now()}`,
+            method: methodValue,
+            reference: values.reference || `STAFF-${Date.now()}`,
             status: values.status,
             inKindDescription: values.type === "in_kind" ? values.inKindDescription || "Estimated in-kind value" : null,
             sponsorId: donation?.sponsorId ?? null,
@@ -193,26 +247,28 @@ function DonationDialog({ open, onOpenChange, donation }: { open: boolean; onOpe
           <Input type="number" step="0.01" aria-label="Amount" {...form.register("amount", { valueAsNumber: true })} />
           <Input type="date" aria-label="Date" {...form.register("date")} />
           <div className="grid gap-2 sm:grid-cols-2">
-            <select aria-label="Type" className="h-8 rounded-lg border bg-transparent px-2 text-sm" {...form.register("type")}>
+            <select aria-label="Type" className="h-8 rounded-lg border bg-transparent px-2 text-sm" {...form.register("type", { onChange: (event) => { if (event.target.value === "in_kind") form.setValue("method", "in_kind"); } })}>
               {["one_time", "recurring", "corporate", "in_kind"].map((type) => <option key={type} value={type}>{titleCase(type)}</option>)}
             </select>
-            <select aria-label="Status" className="h-8 rounded-lg border bg-transparent px-2 text-sm" {...form.register("status")}>
-              {["pending", "completed", "refunded"].map((status) => <option key={status} value={status}>{status}</option>)}
-            </select>
+            {payWithStripe ? null : (
+              <select aria-label="Status" className="h-8 rounded-lg border bg-transparent px-2 text-sm" {...form.register("status")}>
+                {["pending", "completed", "refunded"].map((status) => <option key={status} value={status}>{status}</option>)}
+              </select>
+            )}
           </div>
           <select aria-label="Program" className="h-8 rounded-lg border bg-transparent px-2 text-sm" {...form.register("programId")}>
             <option value="">Unrestricted</option>
             {programs.map((program) => <option key={program.id} value={program.id}>{program.name}</option>)}
           </select>
           <select aria-label="Method" className="h-8 rounded-lg border bg-transparent px-2 text-sm" {...form.register("method")}>
-            <option value="card_sim">Simulated card</option>
-            <option value="ach_sim">Simulated ACH</option>
+            <option value="card">Card</option>
+            <option value="ach">ACH</option>
             <option value="check">Check</option>
             <option value="cash">Cash</option>
             <option value="in_kind">In-kind</option>
           </select>
-          <Input placeholder="Reference" aria-label="Reference" {...form.register("reference")} />
-          <DialogFooter><Button type="submit">Save donation</Button></DialogFooter>
+          {payWithStripe ? <p className="text-sm text-muted-foreground">Stripe collects the {method === "ach" ? "bank" : "card"} payment for {organization?.name}. The gift is recorded when Checkout confirms it.</p> : <Input placeholder="Reference" aria-label="Reference" {...form.register("reference")} />}
+          <DialogFooter><Button type="submit">{payWithStripe ? "Pay with Stripe" : "Save donation"}</Button></DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

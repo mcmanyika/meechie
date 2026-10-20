@@ -20,7 +20,7 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
             <Link href="/portal">Community portal</Link>
           </nav>
           <div className="flex items-center gap-2">
-            <Link href="/login" className={cn(buttonVariants({ variant: "ghost" }))}>Log in</Link>
+            <Link href="/" className={cn(buttonVariants({ variant: "ghost" }))}>Log in</Link>
             <ExploreButton />
           </div>
         </div>

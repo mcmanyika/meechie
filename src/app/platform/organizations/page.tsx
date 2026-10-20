@@ -14,7 +14,7 @@ export default function OrganizationsPage() {
   if (!user || !hasPermission(user.role, "platform.manage")) return <p className="text-sm">Switch to the platform super admin demo to manage organizations.</p>;
   return (
     <div className="grid gap-5">
-      <PageHeader title="Organizations" description="Each tenant keeps its own records. Creating a workspace starts at registration." actions={<Link href="/register" className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">New organization</Link>} />
+      <PageHeader title="Organizations" description="Each tenant keeps its own records. Creating a workspace starts at registration." actions={<Link href="/register/organization" className="rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">New organization</Link>} />
       <div className="overflow-x-auto rounded-xl border bg-card">
         <table className="w-full text-sm">
           <thead className="border-b text-left text-xs text-muted-foreground"><tr>{["Organization", "Location", "People", "Events", "Status", ""].map((heading) => <th key={heading} className="px-3 py-2">{heading}</th>)}</tr></thead>

@@ -100,8 +100,8 @@ export const donationSchema = z.object({
   date: z.string().min(1),
   type: z.enum(["one_time", "recurring", "corporate", "in_kind"]),
   programId: z.string(),
-  method: z.enum(["card_sim", "ach_sim", "check", "cash", "in_kind"]),
-  reference: z.string().trim().max(40),
+  method: z.enum(["card", "ach", "check", "cash", "in_kind"]),
+  reference: z.string().trim().max(200),
   status: z.enum(["pending", "completed", "refunded"]),
   inKindDescription: z.string().trim().max(160),
 });
@@ -175,25 +175,63 @@ export const donateSchema = z.object({
   name: z.string().trim().min(2),
   email: z.string().trim().email(),
   amount: z.number().positive(),
-  type: z.enum(["one_time", "recurring", "corporate", "in_kind"]),
+  type: z.enum(["one_time", "recurring", "corporate"]),
   programId: z.string(),
-  method: z.enum(["card_sim", "ach_sim", "check"]),
+  method: z.enum(["card", "ach"]),
 });
 
-export const orgOnboardingSchema = z.object({
-  name: z.string().trim().min(2),
-  city: z.string().trim().min(2),
-  state: z.string().trim().min(2).max(2),
-  description: z.string().trim().min(10),
-  email: z.string().trim().email(),
-  phone: z.string().trim().min(7),
-  website: z.string().trim().url("Enter a full website URL."),
-  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
-  secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
-  adminName: z.string().trim().min(2),
-  adminEmail: z.string().trim().email(),
-  planId: z.enum(["starter", "growth", "enterprise"]),
+export const donateButtonSchema = z.object({
+  label: z.string().trim().min(2).max(60),
+  amounts: z.string().trim().min(1),
+  defaultAmount: z.number().positive().max(1_000_000),
+  programId: z.string(),
+  type: z.enum(["one_time", "recurring"]),
+  active: z.boolean(),
 });
+
+export type DonateButtonFormValues = z.infer<typeof donateButtonSchema>;
+
+export const loginSchema = z.object({
+  email: z.string().trim().email("Enter a valid email."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+});
+
+export const registerUserSchema = z
+  .object({
+    name: z.string().trim().min(2, "Enter your name."),
+    email: z.string().trim().email("Enter a valid email."),
+    password: z.string().min(8, "Password must be at least 8 characters."),
+    confirmPassword: z.string().min(8, "Confirm your password."),
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match.",
+  });
+
+export const orgOnboardingSchema = z
+  .object({
+    name: z.string().trim().min(2, "Organization name is required."),
+    city: z.string().trim().min(2, "City is required."),
+    state: z.string().trim().min(2).max(2),
+    description: z.string().trim().min(10, "Add a short description."),
+    email: z.string().trim().email("Enter a valid organization email."),
+    phone: z.string().trim().min(7, "Enter a phone number."),
+    website: z.string().trim().url("Enter a full website URL."),
+    primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+    secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+    adminName: z.string().trim().min(2, "Administrator name is required."),
+    adminEmail: z.string().trim().email("Enter a valid administrator email."),
+    password: z.string().min(8, "Password must be at least 8 characters."),
+    confirmPassword: z.string().min(8, "Confirm your password."),
+    planId: z.enum(["starter", "growth", "enterprise"]),
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match.",
+  });
+
+export type LoginFormValues = z.infer<typeof loginSchema>;
+export type RegisterUserFormValues = z.infer<typeof registerUserSchema>;
 
 export const orgSettingsSchema = z.object({
   name: z.string().trim().min(2),

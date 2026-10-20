@@ -36,7 +36,7 @@ export type AssignmentStatus = "assigned" | "removed";
 export type DonorType = "individual" | "corporate" | "foundation";
 export type DonationType = "one_time" | "recurring" | "corporate" | "in_kind";
 export type DonationStatus = "pending" | "completed" | "refunded";
-export type PaymentMethod = "card_sim" | "ach_sim" | "check" | "cash" | "in_kind";
+export type PaymentMethod = "card" | "ach" | "check" | "cash" | "in_kind";
 export type SponsorTier = "community" | "supporting" | "impact" | "strategic";
 export type SponsorStatus = "active" | "pending" | "expired";
 export type MovementType = "received" | "distributed" | "adjustment_in" | "adjustment_out";
@@ -294,6 +294,21 @@ export interface Donation {
   updatedAt: string;
 }
 
+/** Embeddable give button an organization can place on their own website. */
+export interface DonateButton {
+  id: string;
+  organizationId: string;
+  label: string;
+  /** Preset dollar amounts shown on the public give page. Empty = custom only. */
+  amounts: number[];
+  defaultAmount: number;
+  programId: string | null;
+  type: "one_time" | "recurring";
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Sponsor {
   id: string;
   organizationId: string;
@@ -475,6 +490,7 @@ export interface DemoDatabase {
   serviceLogs: ServiceLog[];
   donors: Donor[];
   donations: Donation[];
+  donateButtons: DonateButton[];
   sponsors: Sponsor[];
   inventoryItems: InventoryItem[];
   inventoryMovements: InventoryMovement[];

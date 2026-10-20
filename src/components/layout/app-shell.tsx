@@ -21,6 +21,7 @@ import { useSession } from "@/hooks/use-org";
 import { ROLE_LABELS, hasPermission } from "@/lib/permissions";
 import { formatRelative, titleCase } from "@/lib/format";
 import { stockOnHand } from "@/lib/domain/metrics";
+import { signOutAuth } from "@/lib/firebase/auth";
 import { useDemoStore } from "@/stores/demo-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -95,7 +97,7 @@ function AuthGate() {
   const user = useDemoStore((state) => state.userId);
   const router = useRouter();
   useEffect(() => {
-    if (hydrated && !user) router.replace("/login");
+    if (hydrated && !user) router.replace("/");
   }, [hydrated, user, router]);
   if (!hydrated) {
     return (
@@ -180,12 +182,14 @@ function ProfileRow({ collapsed }: { collapsed: boolean }) {
       type="button"
       className={navClass(false, collapsed)}
       onClick={() => {
-        exitDemo();
-        router.push("/");
+        void signOutAuth().finally(() => {
+          exitDemo();
+          router.push("/");
+        });
       }}
     >
       <span className="grid size-6 place-items-center rounded-full bg-sidebar-accent text-[10px]">{user.avatarInitials}</span>
-      {collapsed ? <span className="sr-only">Exit demo</span> : <span className="min-w-0 truncate text-left">{user.name}</span>}
+      {collapsed ? <span className="sr-only">Sign out</span> : <span className="min-w-0 truncate text-left">{user.name}</span>}
       {collapsed ? null : <LogOut className="ml-auto size-3.5 opacity-70" />}
     </button>
   );
@@ -290,17 +294,19 @@ function Notifications() {
         <Bell />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {items.length === 0 ? <p className="px-2 py-3 text-sm text-muted-foreground">Nothing new in this workspace.</p> : null}
-        {items.map((item) => (
-          <DropdownMenuItem key={item.id} render={<Link href={item.href} />}>
-            <span className="flex flex-col">
-              <span className="text-sm">{item.title}</span>
-              <span className="text-xs text-muted-foreground">{item.detail}</span>
-            </span>
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {items.length === 0 ? <p className="px-2 py-3 text-sm text-muted-foreground">Nothing new in this workspace.</p> : null}
+          {items.map((item) => (
+            <DropdownMenuItem key={item.id} render={<Link href={item.href} />}>
+              <span className="flex flex-col">
+                <span className="text-sm">{item.title}</span>
+                <span className="text-xs text-muted-foreground">{item.detail}</span>
+              </span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -318,20 +324,24 @@ function UserMenu() {
         <span className="hidden sm:inline">{user.name.split(" ")[0]}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>
-          {user.name}
-          <span className="block text-xs font-normal text-muted-foreground">{ROLE_LABELS[user.role]}</span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link href="/dashboard/settings" />}>Settings</DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => {
-            exitDemo();
-            router.push("/");
-          }}
-        >
-          Exit demo
-        </DropdownMenuItem>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>
+            {user.name}
+            <span className="block text-xs font-normal text-muted-foreground">{ROLE_LABELS[user.role]}</span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem render={<Link href="/dashboard/settings" />}>Settings</DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              void signOutAuth().finally(() => {
+                exitDemo();
+                router.push("/");
+              });
+            }}
+          >
+            Sign out
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

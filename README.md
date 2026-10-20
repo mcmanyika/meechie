@@ -73,25 +73,24 @@ Before using Firebase:
 - Add Authentication and stop trusting the demo role switcher.
 - Store every organization-owned document with `organizationId`.
 - Enforce reads and writes in Security Rules from custom claims, not from the client role.
-- Move payment capture to a server endpoint and a provider such as Stripe. Keep using integer cents. Never collect raw card numbers in this app.
+- Keep card and bank gifts on Stripe Checkout. The recorded amount comes from the Checkout Session, in integer cents. Never collect raw card numbers in this app.
 - Send email, SMS, and WhatsApp through a provider after checking consent. The communications hub currently only writes a local activity log.
 - Store files in Cloud Storage with tenant-scoped paths.
 - Add audit retention, backups, and a privacy review before any real household data is entered.
 
 ## Production roadmap
 
-This concept does not include production authentication, authorization, payments, message delivery, secure storage, privacy compliance, audit retention, or backups.
+This concept includes Firebase email/password login and registration when the public Firebase web config is set. It does not yet include production authorization, message delivery, secure storage, privacy compliance, audit retention, or backups. Card and bank gifts use Stripe Checkout when `STRIPE_SECRET_KEY` is set.
 
 Still required:
 
-1. **Authentication.** Replace demo personas with Firebase Auth or an equivalent identity provider.
-2. **Authorization.** Enforce roles on the server and in Security Rules. Client checks are only a preview.
-3. **Payments.** Integrate a processor. The donation model already stores amount, method, status, and a reference.
-4. **Messaging.** Connect an email provider, Twilio, and WhatsApp Business. Keep the consent flags.
-5. **Storage and privacy.** Encrypt backups, limit personal data, and document retention. Do not add Social Security numbers or detailed medical information.
-6. **Audit and backups.** Persist the audit stream outside the browser and test restore procedures.
-7. **Billing.** The Starter ($49), Growth ($149), and Enterprise (custom) prices are samples, not invoices.
+1. **Authorization.** Enforce roles on the server and in Security Rules. Client checks are only a preview.
+2. **Payments.** Checkout, return verification, and `/api/stripe/webhook` are in place for gifts. Persist the webhook result in the server repository so bank payments and refunds update every signed-in browser, not only the tab that returns from Checkout. SaaS plan prices remain samples.
+3. **Messaging.** Connect an email provider, Twilio, and WhatsApp Business. Keep the consent flags.
+4. **Storage and privacy.** Encrypt backups, limit personal data, and document retention. Do not add Social Security numbers or detailed medical information.
+5. **Audit and backups.** Persist the audit stream outside the browser and test restore procedures.
+6. **Billing.** The Starter ($49), Growth ($149), and Enterprise (custom) prices are samples, not invoices.
 
 ## Sample scale
 
-The Meechie Project seed includes 150 community members, 65 households, 35 volunteers, 12 donors, 8 sponsors, 6 programs, 15 events, 60 donations, 20 inventory items, 100 registrations, and 80 attendance records. All of it is generated and fictional.
+The Meechie Project seed includes 150 community members, 65 households, 35 volunteers, 12 donors, 8 sponsors, 6 programs, 15 events, 20 inventory items, 100 registrations, and 80 attendance records. It does not include donation records. Gifts are added by Stripe Checkout or by staff for checks, cash, and in-kind. All sample records are generated and fictional.

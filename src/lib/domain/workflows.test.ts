@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { MEECHIE_ORG_ID, NORTHSIDE_ORG_ID } from "@/config/constants";
 import { computeImpact, executiveSnapshot, stockOnHand } from "@/lib/domain/metrics";
 import { createSeedDatabase } from "@/lib/demo/seed";
-import { checkInAttendee, recordDonation, recordMovement, registerForEvent } from "@/lib/domain/workflows";
+import { applyStripePayment, checkInAttendee, recordDonation, recordMovement, registerForEvent } from "@/lib/domain/workflows";
 
 const db = createSeedDatabase(new Date("2026-10-18T15:00:00.000Z"));
 
@@ -33,7 +33,8 @@ describe("impact metrics", () => {
     );
     const north = executiveSnapshot(db, NORTHSIDE_ORG_ID, new Date("2026-10-18T15:00:00.000Z"));
     const meechie = executiveSnapshot(db, MEECHIE_ORG_ID, new Date("2026-10-18T15:00:00.000Z"));
-    expect(north.donationsCents).not.toBe(meechie.donationsCents);
+    expect(north.donationsCents).toBe(0);
+    expect(meechie.donationsCents).toBe(0);
   });
 });
 
@@ -106,7 +107,7 @@ describe("fundraising and inventory", () => {
       date: "2026-10-18T12:00:00.000Z",
       type: "one_time",
       programId: null,
-      method: "card_sim",
+      method: "card",
       reference: "SIM-TEST",
       status: "completed",
       inKindDescription: null,
@@ -117,6 +118,72 @@ describe("fundraising and inventory", () => {
     if (!result.ok) return;
     expect(executiveSnapshot(result.data.db, MEECHIE_ORG_ID).donationsCents).toBe(before + 10000);
     expect(executiveSnapshot(result.data.db, NORTHSIDE_ORG_ID).donationsCents).toBe(executiveSnapshot(db, NORTHSIDE_ORG_ID).donationsCents);
+  });
+
+  it("counts a verified Stripe gift once and waits to count a bank payment", () => {
+    const before = executiveSnapshot(db, MEECHIE_ORG_ID).donationsCents;
+    const north = executiveSnapshot(db, NORTHSIDE_ORG_ID).donationsCents;
+    const paid = applyStripePayment(db, {
+      sessionId: "cs_test_meechie_gift",
+      organizationId: MEECHIE_ORG_ID,
+      name: "Amina Cole",
+      email: "amina.cole@example.com",
+      amountCents: 12500,
+      programId: null,
+      type: "one_time",
+      method: "card",
+      donorId: null,
+      status: "completed",
+    });
+    expect(paid.ok).toBe(true);
+    if (!paid.ok) return;
+    expect(executiveSnapshot(paid.data.db, MEECHIE_ORG_ID).donationsCents).toBe(before + 12500);
+    expect(executiveSnapshot(paid.data.db, NORTHSIDE_ORG_ID).donationsCents).toBe(north);
+    const again = applyStripePayment(paid.data.db, {
+      sessionId: "cs_test_meechie_gift",
+      organizationId: MEECHIE_ORG_ID,
+      name: "Amina Cole",
+      email: "amina.cole@example.com",
+      amountCents: 12500,
+      programId: null,
+      type: "one_time",
+      method: "card",
+      donorId: null,
+      status: "completed",
+    });
+    expect(again.ok && again.data.alreadyApplied).toBe(true);
+    if (!again.ok) return;
+    expect(executiveSnapshot(again.data.db, MEECHIE_ORG_ID).donationsCents).toBe(before + 12500);
+    const pending = applyStripePayment(db, {
+      sessionId: "cs_test_meechie_ach",
+      organizationId: MEECHIE_ORG_ID,
+      name: "Amina Cole",
+      email: "amina.cole@example.com",
+      amountCents: 4000,
+      programId: null,
+      type: "one_time",
+      method: "ach",
+      donorId: null,
+      status: "pending",
+    });
+    expect(pending.ok).toBe(true);
+    if (!pending.ok) return;
+    expect(executiveSnapshot(pending.data.db, MEECHIE_ORG_ID).donationsCents).toBe(before);
+    const settled = applyStripePayment(pending.data.db, {
+      sessionId: "cs_test_meechie_ach",
+      organizationId: MEECHIE_ORG_ID,
+      name: "Amina Cole",
+      email: "amina.cole@example.com",
+      amountCents: 4000,
+      programId: null,
+      type: "one_time",
+      method: "ach",
+      donorId: null,
+      status: "completed",
+    });
+    expect(settled.ok).toBe(true);
+    if (!settled.ok) return;
+    expect(executiveSnapshot(settled.data.db, MEECHIE_ORG_ID).donationsCents).toBe(before + 4000);
   });
 
   it("refuses to distribute more stock than the ledger holds", () => {

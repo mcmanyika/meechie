@@ -311,6 +311,106 @@ export function recordDonation(
   };
 }
 
+export type StripePaymentNotice = {
+  sessionId: string;
+  organizationId: string;
+  name: string;
+  email: string;
+  amountCents: number;
+  programId: string | null;
+  type: "one_time" | "recurring" | "corporate";
+  method: "card" | "ach";
+  donorId: string | null;
+  status: "completed" | "pending" | "refunded";
+};
+
+/** Applies a Stripe-verified payment. Card numbers never enter this function. */
+export function applyStripePayment(db: DemoDatabase, input: StripePaymentNotice): Result<{ db: DemoDatabase; donation: Donation; alreadyApplied: boolean }> {
+  const writable = assertOrgWritable(db, input.organizationId);
+  if (!writable.ok) return writable;
+  if (!input.sessionId.startsWith("cs_")) return { ok: false, error: "Stripe session is missing." };
+  if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) return { ok: false, error: "Stripe amount is invalid." };
+  const existing = db.donations.find((item) => item.organizationId === input.organizationId && item.reference === input.sessionId);
+  const now = nowIso();
+  if (existing) {
+    if (existing.status === input.status || (existing.status === "completed" && input.status === "pending")) {
+      return { ok: true, data: { db, donation: existing, alreadyApplied: true } };
+    }
+    const donation = { ...existing, status: input.status, amountCents: input.amountCents, updatedAt: now };
+    return {
+      ok: true,
+      data: {
+        donation,
+        alreadyApplied: false,
+        db: appendAudit(
+          { ...db, donations: db.donations.map((item) => (item.id === donation.id ? donation : item)) },
+          input.organizationId,
+          "Stripe",
+          "donation.stripe",
+          "donation",
+          donation.id,
+          `Stripe marked this gift ${input.status}.`,
+          now,
+        ),
+      },
+    };
+  }
+  if (input.status === "refunded") return { ok: false, error: "No matching gift to refund." };
+  const org = db.organizations.find((item) => item.id === input.organizationId);
+  let donor = input.donorId
+    ? db.donors.find((item) => item.id === input.donorId && item.organizationId === input.organizationId)
+    : undefined;
+  donor ??= db.donors.find((item) => item.organizationId === input.organizationId && item.email.toLowerCase() === input.email.toLowerCase());
+  let donors = db.donors;
+  if (!donor) {
+    donor = {
+      id: createId("dnr"),
+      organizationId: input.organizationId,
+      name: input.name,
+      email: input.email,
+      phone: "Not collected",
+      type: input.type === "corporate" ? "corporate" : "individual",
+      city: org?.city ?? "",
+      createdAt: now,
+      updatedAt: now,
+    };
+    donors = [donor, ...donors];
+  }
+  const donation: Donation = {
+    id: createId("don"),
+    organizationId: input.organizationId,
+    donorId: donor.id,
+    amountCents: input.amountCents,
+    date: now,
+    type: input.type,
+    programId: input.programId,
+    method: input.method,
+    reference: input.sessionId,
+    status: input.status,
+    inKindDescription: null,
+    sponsorId: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+  return {
+    ok: true,
+    data: {
+      donation,
+      alreadyApplied: false,
+      db: appendAudit(
+        { ...db, donors, donations: [donation, ...db.donations] },
+        input.organizationId,
+        "Stripe",
+        "donation.stripe",
+        "donation",
+        donation.id,
+        `Stripe ${input.status} gift for ${donor.name}.`,
+        now,
+      ),
+    },
+  };
+}
+
 export function recordMovement(
   db: DemoDatabase,
   input: Omit<InventoryMovement, "id" | "createdAt" | "updatedAt"> & { actorName: string },

@@ -11,6 +11,7 @@ import {
   appendAudit,
   assignVolunteer,
   checkInAttendee,
+  applyStripePayment,
   publishEvent,
   recordDonation,
   recordExpense,
@@ -21,12 +22,15 @@ import {
   simulateCampaign,
   upsertMember,
   type Result,
+  type StripePaymentNotice,
 } from "@/lib/domain/workflows";
+import { publishGivingProfile } from "@/lib/giving/publish-client";
 import type {
   Announcement,
   AssistanceRequest,
   CommunityMember,
   DemoDatabase,
+  DonateButton,
   Donation,
   Donor,
   Household,
@@ -55,6 +59,8 @@ interface DemoStore {
   hydrate: () => Promise<void>;
   resetDemo: () => Promise<void>;
   enterDemo: (userId?: string) => void;
+  enterByEmail: (email: string) => Result<{ role: User["role"] }>;
+  registerUser: (input: { name: string; email: string }) => Result<User>;
   exitDemo: () => void;
   setOrg: (orgId: string) => void;
   setUser: (userId: string) => void;
@@ -72,6 +78,8 @@ interface DemoStore {
   registerMember: (eventId: string, memberId: string, source: "admin" | "portal") => Result<true>;
   portalRegister: (input: { organizationId: string; eventId: string; firstName: string; lastName: string; email: string; phone: string; city: string; neighborhood: string; consentEmail: boolean }) => Result<true>;
   portalDonate: (input: { organizationId: string; name: string; email: string; amountCents: number; programId: string | null; type: Donation["type"]; method: Donation["method"] }) => Result<true>;
+  applyVerifiedPayment: (notice: StripePaymentNotice) => Result<Donation>;
+  reloadFromStorage: () => void;
   checkIn: (registrationId: string) => Result<true>;
   cancelRegistration: (registrationId: string) => Result<true>;
   saveVolunteer: (volunteer: Volunteer, mode: "create" | "update") => Result<Volunteer>;
@@ -80,6 +88,8 @@ interface DemoStore {
   logService: (input: { volunteerId: string; eventId: string | null; hours: number; date: string; notes: string }) => Result<true>;
   saveDonor: (donor: Donor, mode: "create" | "update") => Result<Donor>;
   saveDonation: (donation: Donation, mode: "create" | "update") => Result<Donation>;
+  saveDonateButton: (button: DonateButton, mode: "create" | "update") => Result<DonateButton>;
+  deleteDonateButton: (buttonId: string) => Result<true>;
   saveSponsor: (sponsor: Sponsor, mode: "create" | "update") => Result<Sponsor>;
   saveItem: (item: InventoryItem, mode: "create" | "update") => Result<InventoryItem>;
   moveStock: (input: { itemId: string; type: "received" | "distributed" | "adjustment_in" | "adjustment_out"; quantity: number; eventId: string | null; note: string }) => Result<true>;
@@ -184,6 +194,55 @@ export const useDemoStore = create<DemoStore>((set, get) => {
       const orgId = user.organizationId ?? get().orgId ?? MEECHIE_ORG_ID;
       set({ userId: user.id, orgId, tourStep: 0 });
       sessionFrom(get());
+    },
+
+    enterByEmail: (email) => {
+      const normalized = email.trim().toLowerCase();
+      const user = get().db.users.find((item) => item.email.toLowerCase() === normalized);
+      if (!user) return fail("No MeechieOS workspace is linked to this account yet.");
+      const orgId = user.organizationId ?? MEECHIE_ORG_ID;
+      set({ userId: user.id, orgId, tourStep: user.id.startsWith("user_") ? 0 : null });
+      sessionFrom(get());
+      return { ok: true, data: { role: user.role } };
+    },
+
+    registerUser: (input) => {
+      const email = input.email.trim().toLowerCase();
+      if (get().db.users.some((item) => item.email.toLowerCase() === email)) {
+        return fail("An account with this email already exists. Sign in instead.");
+      }
+      const now = new Date().toISOString();
+      const name = input.name.trim();
+      const user: User = {
+        id: createId("user"),
+        organizationId: MEECHIE_ORG_ID,
+        name,
+        email,
+        role: "community_member",
+        title: "Community member",
+        avatarInitials: name
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part[0]?.toUpperCase() ?? "")
+          .join("") || "CM",
+        createdAt: now,
+        updatedAt: now,
+      };
+      commit(
+        appendAudit(
+          { ...get().db, users: [user, ...get().db.users] },
+          MEECHIE_ORG_ID,
+          user.name,
+          "user.registered",
+          "user",
+          user.id,
+          `${user.name} created an account.`,
+        ),
+      );
+      set({ userId: user.id, orgId: MEECHIE_ORG_ID, tourStep: null });
+      sessionFrom(get());
+      return { ok: true, data: user };
     },
 
     exitDemo: () => {
@@ -388,6 +447,7 @@ export const useDemoStore = create<DemoStore>((set, get) => {
     },
 
     portalDonate: (input) => {
+      if (input.method === "card" || input.method === "ach") return fail("Card and bank gifts are collected on Stripe Checkout.");
       const org = get().db.organizations.find((item) => item.id === input.organizationId);
       if (!org?.portalEnabled) return fail("Donations are closed for this portal.");
       const now = new Date().toISOString();
@@ -426,6 +486,18 @@ export const useDemoStore = create<DemoStore>((set, get) => {
       if (!result.ok) return result;
       commit(result.data.db);
       return { ok: true, data: true };
+    },
+
+    applyVerifiedPayment: (notice) => {
+      const result = applyStripePayment(get().db, notice);
+      if (!result.ok) return result;
+      if (!result.data.alreadyApplied) commit(result.data.db);
+      return { ok: true, data: result.data.donation };
+    },
+
+    reloadFromStorage: () => {
+      const stored = loadDatabase();
+      if (stored) set({ db: stored });
     },
 
     checkIn: (registrationId) => {
@@ -536,6 +608,7 @@ export const useDemoStore = create<DemoStore>((set, get) => {
       const who = actor("donations.manage");
       if (!who.ok) return who;
       if (mode === "create") {
+        if (donation.method === "card" || donation.method === "ach") return fail("Card and bank gifts are collected on Stripe Checkout.");
         const result = recordDonation(get().db, { ...donation, organizationId: who.data.orgId, actorName: who.data.name });
         if (!result.ok) return result;
         commit(result.data.db);
@@ -556,6 +629,60 @@ export const useDemoStore = create<DemoStore>((set, get) => {
         ),
       );
       return { ok: true, data: next };
+    },
+
+    saveDonateButton: (button, mode) => {
+      const who = actor("donations.manage");
+      if (!who.ok) return who;
+      if (!button.label.trim()) return fail("Add a button label.");
+      if (!Number.isFinite(button.defaultAmount) || button.defaultAmount <= 0) return fail("Set a default gift amount.");
+      const now = new Date().toISOString();
+      const next: DonateButton = {
+        ...button,
+        id: mode === "create" ? createId("btn") : button.id,
+        organizationId: who.data.orgId,
+        label: button.label.trim(),
+        amounts: button.amounts.filter((amount) => amount > 0).slice(0, 8),
+        updatedAt: now,
+        createdAt: mode === "create" ? now : button.createdAt,
+      };
+      const db = {
+        ...get().db,
+        donateButtons: replace(get().db.donateButtons ?? [], next, mode),
+      };
+      commit(
+        appendAudit(db, who.data.orgId, who.data.name, "donate_button.saved", "donate_button", next.id, next.label),
+      );
+      const org = db.organizations.find((item) => item.id === who.data.orgId);
+      if (org) {
+        void publishGivingProfile({
+          organization: org,
+          buttons: db.donateButtons.filter((item) => item.organizationId === org.id),
+          programs: db.programs,
+        }).catch(() => undefined);
+      }
+      return { ok: true, data: next };
+    },
+
+    deleteDonateButton: (buttonId) => {
+      const who = actor("donations.manage");
+      if (!who.ok) return who;
+      const existing = get().db.donateButtons.find((item) => item.id === buttonId && item.organizationId === who.data.orgId);
+      if (!existing) return fail("Donate button not found.");
+      const db = {
+        ...get().db,
+        donateButtons: get().db.donateButtons.filter((item) => item.id !== buttonId),
+      };
+      commit(appendAudit(db, who.data.orgId, who.data.name, "donate_button.deleted", "donate_button", buttonId, existing.label));
+      const org = db.organizations.find((item) => item.id === who.data.orgId);
+      if (org) {
+        void publishGivingProfile({
+          organization: org,
+          buttons: db.donateButtons.filter((item) => item.organizationId === org.id),
+          programs: db.programs,
+        }).catch(() => undefined);
+      }
+      return { ok: true, data: true };
     },
 
     saveSponsor: (sponsor, mode) => {

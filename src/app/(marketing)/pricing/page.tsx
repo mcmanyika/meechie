@@ -19,7 +19,7 @@ export default function PricingPage() {
             <p className="mt-2 text-3xl font-semibold">{plan.monthlyPriceCents == null ? "Custom" : formatMoney(plan.monthlyPriceCents)}</p>
             <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
             <ul className="mt-4 flex-1 space-y-2 text-sm">{plan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
-            <Link href="/register" className={cn(buttonVariants(), "mt-6")}>Start onboarding</Link>
+            <Link href="/register/organization" className={cn(buttonVariants(), "mt-6")}>Start onboarding</Link>
           </article>
         ))}
       </div>
