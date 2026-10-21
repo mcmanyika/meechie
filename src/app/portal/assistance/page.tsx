@@ -21,7 +21,7 @@ export default function PortalAssistancePage() {
       form.reset();
     })}>
       <h1 className="text-2xl font-semibold">Request assistance</h1>
-      <p className="text-sm text-[#6b6258]">Share a way to reach you and the kind of help you want. Do not include medical details, government IDs, or information about children.</p>
+      <p className="text-sm text-[#555555]">Share a way to reach you and the kind of help you want. Do not include medical details, government IDs, or information about children.</p>
       <input className="h-11 rounded-xl border bg-white px-3" placeholder="Your name" aria-label="Your name" {...form.register("contactName")} />
       <select aria-label="Contact method" className="h-11 rounded-xl border bg-white px-3" {...form.register("contactMethod")}>
         <option value="email">Email</option>
@@ -36,7 +36,7 @@ export default function PortalAssistancePage() {
         <option>Other community resource</option>
       </select>
       <textarea className="min-h-28 rounded-xl border bg-white px-3 py-2" placeholder="How can the team follow up?" aria-label="Message" {...form.register("message")} />
-      <button className="h-11 rounded-full bg-[#12352f] text-sm font-medium text-white" type="submit">Submit request</button>
+      <button className="h-11 rounded-full bg-[#1db954] text-sm font-medium text-white" type="submit">Submit request</button>
     </form>
   );
 }

@@ -9,7 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-heading), var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,73 +48,80 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Brand tokens from themeechieproject.org */
 :root {
-  --background: #f4f6f8;
-  --foreground: #121826;
+  --brand-green: #1db954;
+  --brand-mint: #7bf9aa;
+  --brand-blue: #066cf4;
+  --brand-yellow: #fdf279;
+  --brand-pink: #ea8afd;
+  --brand-sky: #73d0fc;
+  --background: #ffffff;
+  --foreground: #000000;
   --card: #ffffff;
-  --card-foreground: #121826;
+  --card-foreground: #000000;
   --popover: #ffffff;
-  --popover-foreground: #121826;
-  --primary: #1d4ed8;
+  --popover-foreground: #000000;
+  --primary: #1db954;
   --primary-foreground: #ffffff;
-  --secondary: #e7f4f1;
-  --secondary-foreground: #115e59;
-  --muted: #eef1f4;
-  --muted-foreground: #5c6778;
-  --accent: #e7f4f1;
-  --accent-foreground: #115e59;
+  --secondary: #fdf279;
+  --secondary-foreground: #000000;
+  --muted: #f7f7f7;
+  --muted-foreground: #555555;
+  --accent: #066cf4;
+  --accent-foreground: #ffffff;
   --destructive: #b42318;
-  --border: #e4e7ec;
-  --input: #e4e7ec;
-  --ring: #1d4ed8;
-  --chart-1: #1d4ed8;
-  --chart-2: #0f766e;
-  --chart-3: #0369a1;
-  --chart-4: #b45309;
-  --chart-5: #64748b;
+  --border: #cccccc;
+  --input: #cccccc;
+  --ring: #1db954;
+  --chart-1: #1db954;
+  --chart-2: #066cf4;
+  --chart-3: #7bf9aa;
+  --chart-4: #fdf279;
+  --chart-5: #ea8afd;
   --radius: 0.75rem;
-  --sidebar: #0b1f33;
-  --sidebar-foreground: #e7eef6;
-  --sidebar-primary: #14b8a6;
-  --sidebar-primary-foreground: #042f2e;
-  --sidebar-accent: #14324d;
-  --sidebar-accent-foreground: #f8fafc;
-  --sidebar-border: #1e3a54;
-  --sidebar-ring: #5eead4;
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #1db954;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #333333;
+  --sidebar-ring: #7bf9aa;
 }
 
 .dark {
-  --background: #0e141b;
-  --foreground: #e8eef5;
-  --card: #161e28;
-  --card-foreground: #e8eef5;
-  --popover: #161e28;
-  --popover-foreground: #e8eef5;
-  --primary: #60a5fa;
-  --primary-foreground: #0b1f33;
-  --secondary: #12352f;
-  --secondary-foreground: #ccfbf1;
-  --muted: #1c2733;
-  --muted-foreground: #9aa8b8;
-  --accent: #12352f;
-  --accent-foreground: #ccfbf1;
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --card: #141414;
+  --card-foreground: #ffffff;
+  --popover: #141414;
+  --popover-foreground: #ffffff;
+  --primary: #1db954;
+  --primary-foreground: #ffffff;
+  --secondary: #fdf279;
+  --secondary-foreground: #000000;
+  --muted: #1f1f1f;
+  --muted-foreground: #a3a3a3;
+  --accent: #066cf4;
+  --accent-foreground: #ffffff;
   --destructive: #f97066;
-  --border: #243140;
-  --input: #243140;
-  --ring: #60a5fa;
-  --chart-1: #60a5fa;
-  --chart-2: #2dd4bf;
-  --chart-3: #38bdf8;
-  --chart-4: #fbbf24;
-  --chart-5: #94a3b8;
-  --sidebar: #071421;
-  --sidebar-foreground: #e7eef6;
-  --sidebar-primary: #2dd4bf;
-  --sidebar-primary-foreground: #042f2e;
-  --sidebar-accent: #10283c;
-  --sidebar-accent-foreground: #f8fafc;
-  --sidebar-border: #1a3348;
-  --sidebar-ring: #5eead4;
+  --border: #333333;
+  --input: #333333;
+  --ring: #7bf9aa;
+  --chart-1: #1db954;
+  --chart-2: #73d0fc;
+  --chart-3: #7bf9aa;
+  --chart-4: #fdf279;
+  --chart-5: #ea8afd;
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #1db954;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #333333;
+  --sidebar-ring: #7bf9aa;
 }
 
 @media print {
@@ -131,10 +138,19 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background font-sans text-foreground;
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading), var(--font-sans), sans-serif;
+    letter-spacing: -0.02em;
   }
   a,
   button:not(:disabled),
@@ -147,4 +163,8 @@
   [aria-disabled="true"] {
     cursor: not-allowed;
   }
+}
+
+@utility font-heading {
+  font-family: var(--font-heading), var(--font-sans), sans-serif;
 }

@@ -55,7 +55,6 @@ interface DemoStore {
   mobileNav: boolean;
   searchOpen: boolean;
   helpOpen: boolean;
-  tourStep: number | null;
   hydrate: () => Promise<void>;
   resetDemo: () => Promise<void>;
   enterDemo: (userId?: string) => void;
@@ -68,7 +67,6 @@ interface DemoStore {
   setMobileNav: (value: boolean) => void;
   setSearchOpen: (value: boolean) => void;
   setHelpOpen: (value: boolean) => void;
-  setTourStep: (step: number | null) => void;
   saveMember: (member: CommunityMember, mode: "create" | "update") => Result<CommunityMember>;
   saveHousehold: (household: Household, mode: "create" | "update") => Result<Household>;
   saveProgram: (program: Program, mode: "create" | "update") => Result<Program>;
@@ -109,12 +107,11 @@ interface DemoStore {
   saveReport: (input: { title: string; periodStart: string; periodEnd: string; programId: string | null; eventId: string | null; location: string | null }) => Result<true>;
 }
 
-function sessionFrom(state: Pick<DemoStore, "userId" | "orgId" | "sidebarCollapsed" | "tourStep">) {
+function sessionFrom(state: Pick<DemoStore, "userId" | "orgId" | "sidebarCollapsed">) {
   saveSession({
     userId: state.userId,
     orgId: state.orgId,
     sidebarCollapsed: state.sidebarCollapsed,
-    tourStep: state.tourStep,
   });
 }
 
@@ -148,7 +145,6 @@ export const useDemoStore = create<DemoStore>((set, get) => {
     mobileNav: false,
     searchOpen: false,
     helpOpen: false,
-    tourStep: null,
 
     hydrate: async () => {
       const hadStoredDatabase = Boolean(loadDatabase());
@@ -163,7 +159,6 @@ export const useDemoStore = create<DemoStore>((set, get) => {
         userId: user?.id ?? null,
         orgId: user ? MEECHIE_ORG_ID : null,
         sidebarCollapsed: session?.sidebarCollapsed ?? current.sidebarCollapsed,
-        tourStep: session?.tourStep ?? current.tourStep,
       });
       if (user) sessionFrom({ ...get(), userId: user.id, orgId: MEECHIE_ORG_ID });
       if (!hadStoredDatabase) void demoRepository.save(db);
@@ -184,7 +179,7 @@ export const useDemoStore = create<DemoStore>((set, get) => {
     enterDemo: (userId = DEMO_ADMIN_USER_ID) => {
       const user = get().db.users.find((item) => item.id === userId) ?? get().db.users.find((item) => item.id === DEMO_ADMIN_USER_ID);
       if (!user) return;
-      set({ userId: user.id, orgId: MEECHIE_ORG_ID, tourStep: 0 });
+      set({ userId: user.id, orgId: MEECHIE_ORG_ID });
       sessionFrom(get());
     },
 
@@ -192,7 +187,7 @@ export const useDemoStore = create<DemoStore>((set, get) => {
       const normalized = email.trim().toLowerCase();
       const user = get().db.users.find((item) => item.email.toLowerCase() === normalized);
       if (!user) return fail("No The Meechie Project account is linked to this email yet.");
-      set({ userId: user.id, orgId: MEECHIE_ORG_ID, tourStep: user.id.startsWith("user_") ? 0 : null });
+      set({ userId: user.id, orgId: MEECHIE_ORG_ID });
       sessionFrom(get());
       return { ok: true, data: { role: user.role } };
     },
@@ -231,13 +226,13 @@ export const useDemoStore = create<DemoStore>((set, get) => {
           `${user.name} created an account.`,
         ),
       );
-      set({ userId: user.id, orgId: MEECHIE_ORG_ID, tourStep: null });
+      set({ userId: user.id, orgId: MEECHIE_ORG_ID });
       sessionFrom(get());
       return { ok: true, data: user };
     },
 
     exitDemo: () => {
-      set({ userId: null, orgId: null, tourStep: null, mobileNav: false });
+      set({ userId: null, orgId: null, mobileNav: false });
       sessionFrom(get());
     },
 
@@ -260,10 +255,6 @@ export const useDemoStore = create<DemoStore>((set, get) => {
     setMobileNav: (mobileNav) => set({ mobileNav }),
     setSearchOpen: (searchOpen) => set({ searchOpen }),
     setHelpOpen: (helpOpen) => set({ helpOpen }),
-    setTourStep: (tourStep) => {
-      set({ tourStep });
-      sessionFrom(get());
-    },
 
     saveMember: (member, mode) => {
       const who = actor("community.manage");

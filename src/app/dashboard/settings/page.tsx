@@ -57,8 +57,6 @@ export default function SettingsPage() {
             <Input aria-label="Postal code" {...form.register("postalCode")} />
             <Input aria-label="Time zone" {...form.register("timezone")} />
             <Input aria-label="Currency" {...form.register("currency")} />
-            <label className="text-sm">Primary <Input type="color" {...form.register("primaryColor")} /></label>
-            <label className="text-sm">Secondary <Input type="color" {...form.register("secondaryColor")} /></label>
           </div>
           <Textarea aria-label="Description" {...form.register("description")} />
           <Textarea aria-label="Portal welcome" {...form.register("portalWelcome")} />

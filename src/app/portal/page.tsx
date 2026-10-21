@@ -16,22 +16,22 @@ export default function PortalHomePage() {
   if (!org) return null;
   return (
     <div className="grid gap-8 pb-8">
-      <section className="rounded-3xl bg-[#12352f] px-6 py-10 text-[#f6f3ec]">
-        <p className="text-sm text-[#b7e4d8]">Community portal</p>
+      <section className="rounded-3xl border-2 border-black bg-black px-6 py-10 text-white shadow-[6px_6px_0_#1db954]">
+        <p className="text-sm text-[#7bf9aa]">Community portal</p>
         <h1 className="mt-2 max-w-xl text-4xl font-semibold tracking-tight">{org.name}</h1>
-        <p className="mt-3 max-w-xl text-sm text-[#d7ebe4]">{org.portalWelcome}</p>
+        <p className="mt-3 max-w-xl text-sm text-white/80">{org.portalWelcome}</p>
         <div className="mt-6 flex flex-wrap gap-2">
-          <Link href="/portal/events" className="rounded-full bg-white px-4 py-2 text-sm font-medium text-[#12352f]">See events</Link>
-          <Link href="/portal/volunteer" className="rounded-full border border-white/30 px-4 py-2 text-sm">Offer time</Link>
+          <Link href="/portal/events" className="rounded-full border-2 border-black bg-[#1db954] px-4 py-2 text-sm font-medium text-white shadow-[3px_3px_0_#000]">See events</Link>
+          <Link href="/portal/volunteer" className="rounded-full border-2 border-white/40 px-4 py-2 text-sm">Offer time</Link>
         </div>
       </section>
       <section>
         <h2 className="text-lg font-semibold">Programs</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {programs.map((program) => (
-            <article key={program.id} className="rounded-2xl bg-white p-4">
+            <article key={program.id} className="rounded-2xl border-2 border-black bg-white p-4 shadow-[3px_3px_0_#fdf279]">
               <h3 className="font-medium">{program.name}</h3>
-              <p className="mt-1 text-sm text-[#6b6258]">{program.description}</p>
+              <p className="mt-1 text-sm text-[#555555]">{program.description}</p>
             </article>
           ))}
         </div>
@@ -40,9 +40,9 @@ export default function PortalHomePage() {
         <h2 className="text-lg font-semibold">Coming up</h2>
         <div className="mt-3 grid gap-3">
           {events.map((event) => (
-            <Link key={event.id} href={`/portal/events/${event.id}`} className="rounded-2xl bg-white p-4">
+            <Link key={event.id} href={`/portal/events/${event.id}`} className="rounded-2xl border-2 border-black bg-white p-4 shadow-[3px_3px_0_#7bf9aa]">
               <p className="font-medium">{event.name}</p>
-              <p className="text-sm text-[#6b6258]">{formatDateTime(event.startAt)} · {event.location}</p>
+              <p className="text-sm text-[#555555]">{formatDateTime(event.startAt)} · {event.location}</p>
             </Link>
           ))}
         </div>

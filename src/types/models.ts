@@ -509,6 +509,5 @@ export interface DemoDatabase {
 export interface SessionState {
   userId: string | null;
   orgId: string | null;
-  tourStep: number | null;
   sidebarCollapsed: boolean;
 }

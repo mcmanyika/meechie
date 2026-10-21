@@ -5,8 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
-  ChevronsLeft,
-  ChevronsRight,
   LifeBuoy,
   LogOut,
   Menu,
@@ -15,8 +13,8 @@ import {
   Sun,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { DEMO_DISCLAIMER, PRODUCT_NAME } from "@/config/constants";
-import { APP_NAV, TOUR_STEPS, type NavItem } from "@/config/navigation";
+import { PRODUCT_NAME } from "@/config/constants";
+import { APP_NAV, type NavItem } from "@/config/navigation";
 import { useSession } from "@/hooks/use-org";
 import { ROLE_LABELS, hasPermission } from "@/lib/permissions";
 import { formatRelative, titleCase } from "@/lib/format";
@@ -41,37 +39,29 @@ import { cn } from "cn";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const hydrated = useDemoStore((state) => state.hydrated);
-  const collapsed = useDemoStore((state) => state.sidebarCollapsed);
-  const setCollapsed = useDemoStore((state) => state.setSidebarCollapsed);
   const mobileNav = useDemoStore((state) => state.mobileNav);
   const setMobileNav = useDemoStore((state) => state.setMobileNav);
   const { user } = useSession();
+  const [sidebarHovered, setSidebarHovered] = useState(false);
+  const sidebarExpanded = sidebarHovered;
 
   if (!hydrated || !user) return <AuthGate />;
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="flex min-h-svh bg-background text-foreground">
+      <div className="hidden w-[76px] shrink-0 md:block" aria-hidden="true" />
       <aside
         data-app-chrome
+        onMouseEnter={() => setSidebarHovered(true)}
+        onMouseLeave={() => setSidebarHovered(false)}
         className={cn(
-          "sticky top-0 hidden h-screen shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex",
-          collapsed ? "w-[76px]" : "w-64",
+          "fixed inset-y-0 left-0 z-40 hidden h-svh flex-col bg-sidebar text-sidebar-foreground transition-[width,box-shadow] duration-200 ease-out md:flex",
+          sidebarExpanded ? "w-64 shadow-[8px_0_24px_rgba(0,0,0,0.18)]" : "w-[76px]",
         )}
       >
-        <SidebarBody collapsed={collapsed} onNavigate={() => undefined} />
-        <button
-          type="button"
-          className="m-3 inline-flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent"
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
-          {collapsed ? <span className="sr-only">Expand sidebar</span> : "Collapse"}
-        </button>
+        <SidebarBody collapsed={!sidebarExpanded} onNavigate={() => undefined} />
       </aside>
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <div data-app-chrome className="border-b bg-[#e7f4f1] px-4 py-2 text-center text-xs text-[#115e59] dark:bg-[#12352f] dark:text-[#ccfbf1]">
-          {DEMO_DISCLAIMER}
-        </div>
+      <div className="flex min-h-svh min-w-0 flex-1 flex-col">
         <TopBar onMenu={() => setMobileNav(true)} />
         <main className="w-full flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
@@ -83,7 +73,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <SidebarBody collapsed={false} onNavigate={() => setMobileNav(false)} />
         </SheetContent>
       </Sheet>
-      <Tour />
       <SearchDialog />
       <HelpSheet />
     </div>
@@ -112,19 +101,18 @@ function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
   const { organization, allowed, user } = useSession();
   const setHelpOpen = useDemoStore((state) => state.setHelpOpen);
   return (
-    <div className="flex h-full flex-col">
-      <div className={cn("flex items-center gap-3 px-4 py-4", collapsed && "justify-center px-2")}>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className={cn("flex shrink-0 items-center gap-3 px-4 py-4", collapsed && "justify-center px-2")}>
         <div className="grid size-9 place-items-center rounded-lg bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
           {organization?.logoText ?? "MP"}
         </div>
         {collapsed ? null : (
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{organization?.name ?? PRODUCT_NAME}</p>
-            <p className="truncate text-xs text-sidebar-foreground/60">{organization?.city}</p>
+            <p className="truncate font-heading text-sm font-semibold">{organization?.name ?? PRODUCT_NAME}</p>
           </div>
         )}
       </div>
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4" aria-label="Primary">
+      <nav className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 pb-4" aria-label="Primary">
         {APP_NAV.map((group) => {
           const items = group.items.filter((item) => user && hasPermission(user.role, item.permission) && allowed(item.permission));
           if (items.length === 0) return null;
@@ -142,7 +130,7 @@ function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
           );
         })}
       </nav>
-      <div className="space-y-1 border-t border-sidebar-border p-3">
+      <div className="mt-auto shrink-0 space-y-1 border-t border-sidebar-border p-3">
         <button type="button" onClick={() => setHelpOpen(true)} className={navClass(false, collapsed)}>
           <LifeBuoy className="size-4 shrink-0" />
           {collapsed ? <span className="sr-only">Help and support</span> : "Help and support"}
@@ -155,7 +143,7 @@ function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
 
 function NavLink({ item, active, collapsed, onNavigate }: { item: NavItem; active: boolean; collapsed: boolean; onNavigate: () => void }) {
   const link = (
-    <Link href={item.href} data-tour={item.tour} onClick={onNavigate} className={navClass(active, collapsed)} aria-current={active ? "page" : undefined}>
+    <Link href={item.href} onClick={onNavigate} className={navClass(active, collapsed)} aria-current={active ? "page" : undefined}>
       <item.icon className="size-4 shrink-0" />
       {collapsed ? <span className="sr-only">{item.label}</span> : item.label}
     </Link>
@@ -377,52 +365,9 @@ function SearchDialog() {
   );
 }
 
-function Tour() {
-  const step = useDemoStore((state) => state.tourStep);
-  const setStep = useDemoStore((state) => state.setTourStep);
-  const router = useRouter();
-  if (step == null) return null;
-  const current = TOUR_STEPS[step];
-  if (!current) return null;
-  return (
-    <div data-app-chrome className="fixed right-4 bottom-4 z-40 w-[min(100%-2rem,22rem)] rounded-xl border bg-popover p-4 shadow-lg">
-      <p className="text-xs text-muted-foreground">
-        Product tour {step + 1} of {TOUR_STEPS.length}
-      </p>
-      <h2 className="mt-1 text-sm font-semibold">{current.title}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">{current.body}</p>
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <Button variant="ghost" size="sm" onClick={() => setStep(null)}>
-          Skip
-        </Button>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => router.push(current.href)}>
-            Show
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => {
-              if (step === TOUR_STEPS.length - 1) {
-                setStep(null);
-                return;
-              }
-              const next = step + 1;
-              setStep(next);
-              router.push(TOUR_STEPS[next].href);
-            }}
-          >
-            {step === TOUR_STEPS.length - 1 ? "Finish" : "Next"}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function HelpSheet() {
   const open = useDemoStore((state) => state.helpOpen);
   const setOpen = useDemoStore((state) => state.setHelpOpen);
-  const setTour = useDemoStore((state) => state.setTourStep);
   const reset = useDemoStore((state) => state.resetDemo);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -432,15 +377,6 @@ function HelpSheet() {
         </SheetHeader>
         <div className="grid gap-3 px-4 text-sm text-muted-foreground">
           <p>This is a local demonstration. Nothing is emailed, charged, or stored outside this browser.</p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setTour(0);
-              setOpen(false);
-            }}
-          >
-            Restart product tour
-          </Button>
           <Button
             variant="outline"
             onClick={() => {

@@ -46,7 +46,7 @@ function DonateForm() {
       }
     })}>
       <h1 className="text-2xl font-semibold">Give</h1>
-      <p className="text-sm text-[#6b6258]">Card and bank gifts open Stripe Checkout. This page never asks for a card number. A paid gift is added to the donation total.</p>
+      <p className="text-sm text-[#555555]">Card and bank gifts open Stripe Checkout. This page never asks for a card number. A paid gift is added to the donation total.</p>
       <input className="h-11 rounded-xl border bg-white px-3" placeholder="Name" aria-label="Name" {...form.register("name")} />
       <input className="h-11 rounded-xl border bg-white px-3" placeholder="Email" aria-label="Email" {...form.register("email")} />
       <input className="h-11 rounded-xl border bg-white px-3" type="number" min="1" step="1" aria-label="Amount in dollars" {...form.register("amount", { valueAsNumber: true })} />
@@ -63,7 +63,7 @@ function DonateForm() {
         <option value="card">Card</option>
         <option value="ach">Bank account (ACH)</option>
       </select>
-      <button className="h-11 rounded-full bg-[#12352f] text-sm font-medium text-white" type="submit">Continue to Stripe</button>
+      <button className="h-11 rounded-full bg-[#1db954] text-sm font-medium text-white" type="submit">Continue to Stripe</button>
     </form>
   );
 }

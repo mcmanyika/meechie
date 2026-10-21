@@ -561,8 +561,8 @@ export function createSeedDatabase(now = new Date()): DemoDatabase {
     logoText: "MP",
     description:
       "A Christian nonprofit in Dallas spreading the love and joy of God through community giveaways, programs, and events — resources for low-income areas, hope for youth, and education for the under-educated.",
-    primaryColor: "#1D4ED8",
-    secondaryColor: "#0F766E",
+    primaryColor: "#1DB954",
+    secondaryColor: "#066CF4",
     email: "themeechieproject@gmail.com",
     phone: "(214) 406-5090",
     website: "https://themeechieproject.org",

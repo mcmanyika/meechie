@@ -46,13 +46,13 @@ export function LoginForm() {
       footer={
         <>
           Need an account?{" "}
-          <Link href="/register" className="font-medium text-[#12352f] underline-offset-4 hover:underline">
+          <Link href="/register" className="font-medium text-primary underline-offset-4 hover:underline">
             Create one
           </Link>
           {" · "}
           <button
             type="button"
-            className="font-medium text-[#12352f] underline-offset-4 hover:underline"
+            className="font-medium text-primary underline-offset-4 hover:underline"
             onClick={() => {
               enterDemo(DEMO_ADMIN_USER_ID);
               router.push("/dashboard");

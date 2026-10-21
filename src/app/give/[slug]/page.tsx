@@ -73,11 +73,11 @@ function GiveForm() {
 
   return (
     <main
-      className="min-h-screen bg-[radial-gradient(circle_at_top,_#f7f3ee,_#ebe4da_55%,_#e2d7c8)] px-4 py-10"
+      className="min-h-screen bg-[radial-gradient(circle_at_top,_#7bf9aa55,_#ffffff_45%,_#fdf27944)] px-4 py-10"
       style={{ ["--give-accent" as string]: profile.primaryColor }}
     >
       <form
-        className="mx-auto grid max-w-md gap-4 rounded-2xl border border-stone-200/80 bg-white/90 p-6 shadow-sm backdrop-blur"
+        className="mx-auto grid max-w-md gap-4 rounded-2xl border-2 border-black bg-white p-6 shadow-[6px_6px_0_#000]"
         onSubmit={(event) => {
           event.preventDefault();
           void (async () => {

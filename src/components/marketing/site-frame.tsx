@@ -6,11 +6,13 @@ import { cn } from "cn";
 
 export function SiteFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
+    <div className="min-h-screen bg-white text-black">
+      <header className="border-b-2 border-black">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <span className="grid size-8 place-items-center rounded-lg bg-[#0b1f33] text-xs text-[#99f6e4]">MP</span>
+          <Link href="/" className="flex items-center gap-2 font-heading font-semibold">
+            <span className="grid size-8 place-items-center rounded-lg border-2 border-black bg-[#1db954] text-xs text-white shadow-[2px_2px_0_#000]">
+              MP
+            </span>
             {PRODUCT_NAME}
           </Link>
           <nav className="hidden items-center gap-6 text-sm md:flex">
@@ -25,9 +27,11 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       {children}
-      <footer className="border-t">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:justify-between">
-          <p>{PRODUCT_NAME} · {PRODUCT_TAGLINE}</p>
+      <footer className="border-t-2 border-black">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-8 text-sm text-[#555555] sm:flex-row sm:justify-between">
+          <p>
+            {PRODUCT_NAME} · <span className="text-[#066cf4]">{PRODUCT_TAGLINE}</span>
+          </p>
           <p>themeechieproject.org · (214) 406-5090</p>
         </div>
       </footer>

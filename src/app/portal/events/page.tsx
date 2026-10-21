@@ -16,9 +16,9 @@ export default function PortalEventsPage() {
       <h1 className="text-2xl font-semibold">Events</h1>
       {events.map((event) => (
         <Link key={event.id} href={`/portal/events/${event.id}`} className="rounded-2xl bg-white p-4">
-          <p className="text-xs text-[#6b6258]">{titleCase(event.category)}</p>
+          <p className="text-xs text-[#555555]">{titleCase(event.category)}</p>
           <h2 className="font-medium">{event.name}</h2>
-          <p className="text-sm text-[#6b6258]">{formatDateTime(event.startAt)} · {event.location}</p>
+          <p className="text-sm text-[#555555]">{formatDateTime(event.startAt)} · {event.location}</p>
           <p className="mt-1 text-sm">{activeRegistrationCount(db, event.id)} of {event.capacity} spots taken</p>
         </Link>
       ))}

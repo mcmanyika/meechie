@@ -18,13 +18,13 @@ export default function PortalVolunteerPage() {
       form.reset();
     })}>
       <h1 className="text-2xl font-semibold">Volunteer</h1>
-      <p className="text-sm text-[#6b6258]">Tell us when you can help. This does not start a background check.</p>
+      <p className="text-sm text-[#555555]">Tell us when you can help. This does not start a background check.</p>
       <input className="h-11 rounded-xl border bg-white px-3" placeholder="Name" aria-label="Name" {...form.register("name")} />
       <input className="h-11 rounded-xl border bg-white px-3" placeholder="Email" aria-label="Email" {...form.register("email")} />
       <input className="h-11 rounded-xl border bg-white px-3" placeholder="Phone" aria-label="Phone" {...form.register("phone")} />
       <input className="h-11 rounded-xl border bg-white px-3" placeholder="Interests" aria-label="Interests" {...form.register("interests")} />
       <input className="h-11 rounded-xl border bg-white px-3" placeholder="Availability" aria-label="Availability" {...form.register("availability")} />
-      <button className="h-11 rounded-full bg-[#12352f] text-sm font-medium text-white" type="submit">Submit interest</button>
+      <button className="h-11 rounded-full bg-[#1db954] text-sm font-medium text-white" type="submit">Submit interest</button>
     </form>
   );
 }

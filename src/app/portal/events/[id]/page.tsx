@@ -33,7 +33,7 @@ export default function PortalEventPage() {
     <div className="grid gap-4 pb-16">
       <article className="rounded-2xl bg-white p-5">
         <h1 className="text-2xl font-semibold">{event.name}</h1>
-        <p className="mt-2 text-sm text-[#6b6258]">{event.description}</p>
+        <p className="mt-2 text-sm text-[#555555]">{event.description}</p>
         <p className="mt-3 text-sm">{formatDateTime(event.startAt)} · {event.location}, {event.city}</p>
         <p className="text-sm">{spots} spots remaining</p>
       </article>
@@ -52,7 +52,7 @@ export default function PortalEventPage() {
           <input className="h-11 rounded-xl border px-3" placeholder="City" aria-label="City" {...form.register("city")} />
           <input className="h-11 rounded-xl border px-3" placeholder="Neighborhood" aria-label="Neighborhood" {...form.register("neighborhood")} />
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...form.register("consentEmail")} /> Email me about this registration. You can ask staff to remove consent later.</label>
-          <button type="submit" className="h-11 rounded-full bg-[#12352f] text-sm font-medium text-white">Submit registration</button>
+          <button type="submit" className="h-11 rounded-full bg-[#1db954] text-sm font-medium text-white">Submit registration</button>
         </form>
       ) : <p className="rounded-2xl bg-white p-5 text-sm">Registration is not open for this event.</p>}
     </div>

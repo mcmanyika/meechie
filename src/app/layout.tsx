@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { Providers } from "@/components/providers";
 import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/config/constants";
 import "./globals.css";
 
-const geistSans = Geist({
+const happiness = localFont({
+  src: "../../public/fonts/Happiness.otf",
+  variable: "--font-heading",
+  display: "swap",
+  weight: "400",
+});
+
+const dmSans = DM_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "700", "800"],
 });
 
 const geistMono = Geist_Mono({
@@ -24,7 +33,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${happiness.variable} ${geistMono.variable}`}>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>
