@@ -31,7 +31,7 @@ export default function CommunicationsPage() {
   return (
     <RequireAccess permission="communications.view" entitlement="communications" feature="Communications">
       <div className="grid gap-5">
-        <PageHeader title="Communications" description="Messages are simulated in this browser. Consent is checked before a demo send is logged." />
+        <PageHeader title="Communications" />
         <p className="rounded-lg border bg-card px-3 py-2 text-sm text-muted-foreground">
           Future providers: email delivery, Twilio SMS, and WhatsApp Business. {optedOut} active-looking records have no channel consent and would be skipped.
         </p>

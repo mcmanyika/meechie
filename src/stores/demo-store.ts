@@ -6,7 +6,7 @@ import { demoRepository } from "@/lib/repositories/local";
 import { createSeedDatabase } from "@/lib/demo/seed";
 import { loadDatabase, loadSession, saveSession } from "@/lib/demo/storage";
 import { createId } from "@/lib/ids";
-import { entitlementAllows, hasPermission, type Permission } from "@/lib/permissions";
+import { hasPermission, type Permission } from "@/lib/permissions";
 import {
   appendAudit,
   assignVolunteer,
@@ -127,17 +127,12 @@ export const useDemoStore = create<DemoStore>((set, get) => {
   const fail = <T>(error: string): Result<T> => ({ ok: false, error });
 
   const actor = (permission: Permission): Result<{ name: string; orgId: string }> => {
-    const { db, userId, orgId } = get();
-    if (!userId || !orgId) return fail("Enter the demo before changing records.");
+    const { db, userId } = get();
+    if (!userId) return fail("Sign in before changing records.");
     const user = db.users.find((item) => item.id === userId);
-    const org = db.organizations.find((item) => item.id === orgId);
-    if (!user || !org) return fail("Demo session is incomplete.");
-    if (!hasPermission(user.role, permission)) return fail("This demo role does not include that action.");
-    const subscription = db.subscriptions.find((item) => item.organizationId === org.id);
-    const plan = db.plans.find((item) => item.id === subscription?.planId);
-    if (plan && !entitlementAllows(plan.entitlements, permission) && user.role !== "platform_super_admin") {
-      return fail("The current subscription does not include this module.");
-    }
+    const org = db.organizations.find((item) => item.id === MEECHIE_ORG_ID);
+    if (!user || !org) return fail("Session is incomplete.");
+    if (!hasPermission(user.role, permission)) return fail("Your role does not include that action.");
     return { ok: true, data: { name: user.name, orgId: org.id } };
   };
 
@@ -162,17 +157,15 @@ export const useDemoStore = create<DemoStore>((set, get) => {
       const current = get();
       const requestedUser = session?.userId ?? current.userId;
       const user = db.users.find((item) => item.id === requestedUser) ?? null;
-      const requestedOrg = session?.orgId ?? current.orgId ?? user?.organizationId ?? null;
-      const orgId = db.organizations.some((org) => org.id === requestedOrg) ? requestedOrg : user?.organizationId ?? MEECHIE_ORG_ID;
       set({
         db,
         hydrated: true,
         userId: user?.id ?? null,
-        orgId: user ? orgId : null,
+        orgId: user ? MEECHIE_ORG_ID : null,
         sidebarCollapsed: session?.sidebarCollapsed ?? current.sidebarCollapsed,
         tourStep: session?.tourStep ?? current.tourStep,
       });
-      if (user) sessionFrom({ ...get(), userId: user.id, orgId });
+      if (user) sessionFrom({ ...get(), userId: user.id, orgId: MEECHIE_ORG_ID });
       if (!hadStoredDatabase) void demoRepository.save(db);
     },
 
@@ -191,17 +184,15 @@ export const useDemoStore = create<DemoStore>((set, get) => {
     enterDemo: (userId = DEMO_ADMIN_USER_ID) => {
       const user = get().db.users.find((item) => item.id === userId) ?? get().db.users.find((item) => item.id === DEMO_ADMIN_USER_ID);
       if (!user) return;
-      const orgId = user.organizationId ?? get().orgId ?? MEECHIE_ORG_ID;
-      set({ userId: user.id, orgId, tourStep: 0 });
+      set({ userId: user.id, orgId: MEECHIE_ORG_ID, tourStep: 0 });
       sessionFrom(get());
     },
 
     enterByEmail: (email) => {
       const normalized = email.trim().toLowerCase();
       const user = get().db.users.find((item) => item.email.toLowerCase() === normalized);
-      if (!user) return fail("No MeechieOS workspace is linked to this account yet.");
-      const orgId = user.organizationId ?? MEECHIE_ORG_ID;
-      set({ userId: user.id, orgId, tourStep: user.id.startsWith("user_") ? 0 : null });
+      if (!user) return fail("No The Meechie Project account is linked to this email yet.");
+      set({ userId: user.id, orgId: MEECHIE_ORG_ID, tourStep: user.id.startsWith("user_") ? 0 : null });
       sessionFrom(get());
       return { ok: true, data: { role: user.role } };
     },
@@ -250,19 +241,15 @@ export const useDemoStore = create<DemoStore>((set, get) => {
       sessionFrom(get());
     },
 
-    setOrg: (orgId) => {
-      if (!get().db.organizations.some((org) => org.id === orgId)) return;
-      set({ orgId });
-      sessionFrom(get());
+    setOrg: (_orgId) => {
+      set({ orgId: MEECHIE_ORG_ID });
+      sessionFrom({ ...get(), orgId: MEECHIE_ORG_ID });
     },
 
     setUser: (userId) => {
       const user = get().db.users.find((item) => item.id === userId);
       if (!user) return;
-      set({
-        userId: user.id,
-        orgId: user.organizationId ?? get().orgId ?? MEECHIE_ORG_ID,
-      });
+      set({ userId: user.id, orgId: MEECHIE_ORG_ID });
       sessionFrom(get());
     },
 
@@ -893,90 +880,19 @@ export const useDemoStore = create<DemoStore>((set, get) => {
 
     saveOrganization: (org) => {
       const who = actor("settings.manage");
-      if (!who.ok && get().db.users.find((user) => user.id === get().userId)?.role !== "platform_super_admin") return who;
+      if (!who.ok) return who;
+      if (org.id !== MEECHIE_ORG_ID) return fail("This app is The Meechie Project only.");
       const now = new Date().toISOString();
-      const next = { ...org, updatedAt: now };
+      const next = { ...org, id: MEECHIE_ORG_ID, updatedAt: now };
       commit({ ...get().db, organizations: get().db.organizations.map((item) => (item.id === next.id ? next : item)) });
       return { ok: true, data: next };
     },
 
-    setOrganizationStatus: (orgId, status) => {
-      const user = get().db.users.find((item) => item.id === get().userId);
-      if (!user || !hasPermission(user.role, "platform.manage")) return fail("Only the platform super admin demo can change organization status.");
-      const now = new Date().toISOString();
-      commit({
-        ...get().db,
-        organizations: get().db.organizations.map((org) => (org.id === orgId ? { ...org, status, updatedAt: now } : org)),
-      });
-      return { ok: true, data: true };
-    },
+    setOrganizationStatus: (_orgId, _status) => fail("This app is The Meechie Project only."),
 
-    createWorkspace: ({ organization, admin, planId }) => {
-      const now = new Date().toISOString();
-      const plan = get().db.plans.find((item) => item.id === planId);
-      if (!plan) return fail("Choose a plan.");
-      if (get().db.organizations.some((org) => org.slug === organization.slug)) return fail("That workspace URL is already in the demo.");
-      const subscription = {
-        id: createId("sub"),
-        organizationId: organization.id,
-        planId,
-        status: "trialing" as const,
-        seatLimit: plan.seatLimit,
-        monthlyPriceCents: plan.monthlyPriceCents,
-        startedAt: now.slice(0, 10),
-        renewsAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString().slice(0, 10),
-        createdAt: now,
-        updatedAt: now,
-      };
-      const templates = get().db.templates.filter((template) => template.organizationId === MEECHIE_ORG_ID).map((template) => ({
-        ...template,
-        id: createId("tpl"),
-        organizationId: organization.id,
-        createdAt: now,
-        updatedAt: now,
-      }));
-      const groups = get().db.groups.filter((group) => group.organizationId === MEECHIE_ORG_ID).map((group) => ({
-        ...group,
-        id: createId("grp"),
-        organizationId: organization.id,
-        createdAt: now,
-        updatedAt: now,
-      }));
-      commit({
-        ...get().db,
-        organizations: [organization, ...get().db.organizations],
-        users: [admin, ...get().db.users],
-        subscriptions: [subscription, ...get().db.subscriptions],
-        templates: [...templates, ...get().db.templates],
-        groups: [...groups, ...get().db.groups],
-        announcements: [
-          {
-            id: createId("ann"),
-            organizationId: organization.id,
-            title: "Workspace ready",
-            body: "This organization was created in the demo. Add programs, people, and events to see the dashboard fill in.",
-            audience: "Staff",
-            publishedAt: now,
-            createdAt: now,
-            updatedAt: now,
-          },
-          ...get().db.announcements,
-        ],
-      });
-      set({ userId: admin.id, orgId: organization.id });
-      sessionFrom(get());
-      return { ok: true, data: organization };
-    },
+    createWorkspace: (_input) => fail("This app is The Meechie Project only. Create a staff account instead."),
 
-    updatePlanPrice: (planId, monthlyPriceCents) => {
-      const user = get().db.users.find((item) => item.id === get().userId);
-      if (!user || !hasPermission(user.role, "platform.manage")) return fail("Only the platform super admin demo can edit sample pricing.");
-      commit({
-        ...get().db,
-        plans: get().db.plans.map((plan) => (plan.id === planId ? { ...plan, monthlyPriceCents } : plan)),
-      });
-      return { ok: true, data: true };
-    },
+    updatePlanPrice: (_planId, _monthlyPriceCents) => fail("This app is The Meechie Project only."),
 
     saveReport: (input) => {
       const who = actor("reports.view");

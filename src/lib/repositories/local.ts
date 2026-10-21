@@ -29,9 +29,9 @@ function migrate(database: DemoDatabase): DemoDatabase {
 }
 
 /**
- * Local demo repository. Replace this module with a Firebase implementation
- * that satisfies the same async methods. Tenant isolation is the caller's
- * organizationId filter — localStorage is not a security boundary.
+ * Local demo repository for The Meechie Project. Replace with Firebase (or
+ * another backend) that satisfies the same async methods. localStorage is a
+ * demo convenience, not a security boundary.
  */
 export const demoRepository = {
   async load(): Promise<DemoDatabase> {

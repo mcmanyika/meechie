@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     default: `${PRODUCT_NAME} — ${PRODUCT_TAGLINE}`,
     template: `%s · ${PRODUCT_NAME}`,
   },
-  description: "MeechieOS is a multi-tenant operating system concept for nonprofit programs, events, volunteers, fundraising, and impact reporting.",
+  description: "The Meechie Project staff and community tools for programs, events, volunteers, fundraising, and impact reporting in Dallas.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

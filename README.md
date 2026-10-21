@@ -1,14 +1,12 @@
-# MeechieOS
+# The Meechie Project
 
-MeechieOS is a multi-tenant nonprofit operating system concept. It helps a team run community programs, events, volunteers, fundraising, inventory, communications, and impact reporting.
+Staff and community tools for **The Meechie Project** — programs, events, volunteers, fundraising, inventory, communications, and impact reporting in Dallas.
 
-The first demonstration organization is **The Meechie Project**, a fictionalized Dallas workspace. A second tenant, Northside Family Alliance, shows that records stay separated by organization. Nothing in the sample data is a real person, gift, or outcome.
-
-Product tagline: **Powering Community Impact**.
+Product tagline: **Love, joy, and community in Dallas**.
 
 ## Requirements
 
-- Node.js 20.19 or newer is recommended. The app was developed against Node 20.
+- Node.js 20.19 or newer is recommended.
 - npm
 
 ## Install and run
@@ -20,21 +18,17 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Explore the demo
+## Explore
 
-1. Choose **Explore demo** on the home page. You enter as Jordan Hale, organization admin for The Meechie Project. No password is used.
-2. A product tour starts on the dashboard. Skip it or restart it from **Help and support** in the sidebar.
-3. The Back-to-School Community Giveaway event walks through publish, registration, volunteer assignment, check-in, and a summary.
-4. Use the **Organization** menu to switch to Northside Family Alliance. Lists, charts, and totals change with the tenant.
-5. Use the **Demo role** menu to preview a program manager, volunteer coordinator, finance manager, volunteer, community member, sponsor, or platform super admin.
-6. The public community portal is at [/portal](http://localhost:3000/portal). Submissions are stored in the demo and appear in the Meechie Project admin views.
-7. Platform administration is at [/platform](http://localhost:3000/platform). Sign in as Avery Quinn, or use the button on that page.
+1. Choose **Explore demo** or sign in. You enter as Jordan Hale (executive director). No password is required for the demo path.
+2. A product tour starts on the dashboard. Skip it or restart it from **Help and support**.
+3. The Back-to-School Meechie Giveaway walks through publish, registration, volunteer assignment, check-in, and a summary.
+4. Use the **Staff role** menu to preview finance, volunteer, community, or sponsor views.
+5. The public community portal is at [/portal](http://localhost:3000/portal). Donations: [/give/meechie](http://localhost:3000/give/meechie).
 
 ## Reset sample data
 
-Open **Help and support** or **Settings** and choose **Reset demo data**. This restores the original fictional dataset in this browser. Your current demo profile stays signed in.
-
-Refreshing the browser keeps changes until you reset them. Data lives in `localStorage` under `meechieos.demo.v1`. That storage is a demo convenience, not tenant security.
+Open **Help and support** or **Settings** and choose **Reset demo data**. Data lives in `localStorage` under `meechieos.demo.v3`.
 
 ## Tests
 
@@ -42,8 +36,6 @@ Refreshing the browser keeps changes until you reset them. Data lives in `localS
 npm test
 npm run typecheck
 ```
-
-Tests cover seed integrity, organization isolation, donation totals, registration duplicates, event capacity, check-in, and inventory that cannot go below zero.
 
 ## Scripts
 
@@ -58,39 +50,4 @@ Tests cover seed integrity, organization isolation, donation totals, registratio
 
 ## Architecture
 
-Operational types live in `src/types/models.ts`. Monetary amounts are integer cents. Derived metrics are calculated in `src/lib/domain/metrics.ts` from attendance, service logs, completed donations, expenses, and the inventory ledger. Workflows such as registration and stock movement live in `src/lib/domain/workflows.ts`.
-
-The UI talks to a Zustand store. The store calls those workflows and persists through `src/lib/repositories/local.ts`. Replace that repository with a Firebase implementation without rewriting the screens.
-
-Permissions are declared in `src/lib/permissions/index.ts`. The demo role switcher only changes the client experience. Production must enforce the same permissions in server code and Firebase Security Rules.
-
-## Firebase later
-
-Copy `.env.example` to `.env.local` when you are ready. The demo ignores empty values. `src/lib/firebase/config.ts` reads the public web config and does not ship a secret.
-
-Before using Firebase:
-
-- Add Authentication and stop trusting the demo role switcher.
-- Store every organization-owned document with `organizationId`.
-- Enforce reads and writes in Security Rules from custom claims, not from the client role.
-- Keep card and bank gifts on Stripe Checkout. The recorded amount comes from the Checkout Session, in integer cents. Never collect raw card numbers in this app.
-- Send email, SMS, and WhatsApp through a provider after checking consent. The communications hub currently only writes a local activity log.
-- Store files in Cloud Storage with tenant-scoped paths.
-- Add audit retention, backups, and a privacy review before any real household data is entered.
-
-## Production roadmap
-
-This concept includes Firebase email/password login and registration when the public Firebase web config is set. It does not yet include production authorization, message delivery, secure storage, privacy compliance, audit retention, or backups. Card and bank gifts use Stripe Checkout when `STRIPE_SECRET_KEY` is set.
-
-Still required:
-
-1. **Authorization.** Enforce roles on the server and in Security Rules. Client checks are only a preview.
-2. **Payments.** Checkout, return verification, and `/api/stripe/webhook` are in place for gifts. Persist the webhook result in the server repository so bank payments and refunds update every signed-in browser, not only the tab that returns from Checkout. SaaS plan prices remain samples.
-3. **Messaging.** Connect an email provider, Twilio, and WhatsApp Business. Keep the consent flags.
-4. **Storage and privacy.** Encrypt backups, limit personal data, and document retention. Do not add Social Security numbers or detailed medical information.
-5. **Audit and backups.** Persist the audit stream outside the browser and test restore procedures.
-6. **Billing.** The Starter ($49), Growth ($149), and Enterprise (custom) prices are samples, not invoices.
-
-## Sample scale
-
-The Meechie Project seed includes 150 community members, 65 households, 35 volunteers, 12 donors, 8 sponsors, 6 programs, 15 events, 20 inventory items, 100 registrations, and 80 attendance records. It does not include donation records. Gifts are added by Stripe Checkout or by staff for checks, cash, and in-kind. All sample records are generated and fictional.
+Next.js App Router client app with a local demo database (Zustand + `localStorage`). Stripe Checkout handles card/ACH gifts. Firebase Auth supports email/password sign-in. Organization records stay scoped to The Meechie Project.

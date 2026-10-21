@@ -136,4 +136,15 @@
   html {
     @apply font-sans;
   }
+  a,
+  button:not(:disabled),
+  [role="link"],
+  [role="button"]:not([aria-disabled="true"]),
+  summary {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }

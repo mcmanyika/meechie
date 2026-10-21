@@ -16,7 +16,6 @@ import { loginSchema, type LoginFormValues } from "@/lib/validations/schemas";
 import { useDemoStore } from "@/stores/demo-store";
 
 function destinationForRole(role: string) {
-  if (role === "platform_super_admin") return "/platform";
   if (role === "community_member" || role === "volunteer" || role === "sponsor") return "/portal";
   return "/dashboard";
 }
@@ -41,13 +40,14 @@ export function LoginForm() {
 
   return (
     <AuthShell
+      variant="split"
       title="Sign in"
-      description="Use the email and password for your MeechieOS account."
+      description="Sign in with your The Meechie Project email and password."
       footer={
         <>
-          New organization?{" "}
+          Need an account?{" "}
           <Link href="/register" className="font-medium text-[#12352f] underline-offset-4 hover:underline">
-            Create an account
+            Create one
           </Link>
           {" · "}
           <button

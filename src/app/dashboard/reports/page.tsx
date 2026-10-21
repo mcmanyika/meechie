@@ -52,7 +52,6 @@ export default function ReportsPage() {
       <div className="grid gap-5" id="impact-report">
         <PageHeader
           title="Impact reports"
-          description="Verified activity is calculated from records. Narrative program outcomes are separate and unverified. This view uses sample data."
           actions={<Button variant="outline" onClick={() => window.print()}>Print report</Button>}
         />
         <div className="flex flex-wrap gap-2">
@@ -77,8 +76,7 @@ export default function ReportsPage() {
           }}>Save report preset</Button>
         </div>
         <article className="rounded-xl border bg-card p-6">
-          <p className="text-xs tracking-wide text-muted-foreground uppercase">Sample data · {organization.name}</p>
-          <h2 className="mt-1 text-xl font-semibold">Sponsor-ready activity summary</h2>
+          <h2 className="text-xl font-semibold">Sponsor-ready activity summary</h2>
           <p className="text-sm text-muted-foreground">{organization.addressLine}, {organization.city}, {organization.state} · {start} to {end}</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {rows.map(([label, value, prior]) => (
@@ -99,12 +97,6 @@ export default function ReportsPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <h3 className="mt-4 text-sm font-medium">Program notes that are not verified metrics</h3>
-          <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-            {programs.filter((program) => !programId || program.id === programId).map((program) => (
-              <li key={program.id}>{program.name}: {program.outcomes[0]?.narrative}</li>
-            ))}
-          </ul>
         </article>
       </div>
     </RequireAccess>

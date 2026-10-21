@@ -32,7 +32,7 @@ export default function InventoryPage() {
   return (
     <RequireAccess permission="inventory.view" entitlement="inventory" feature="Inventory">
       <div className="grid gap-5">
-        <PageHeader title="Inventory" description="Available quantity is the sum of the movement ledger. Distribution cannot take stock below zero." actions={allowed("inventory.manage") ? <Button onClick={() => { setEditing(null); setOpen(true); }}><Plus /> Add item</Button> : null} />
+        <PageHeader title="Inventory" actions={allowed("inventory.manage") ? <Button onClick={() => { setEditing(null); setOpen(true); }}><Plus /> Add item</Button> : null} />
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
             <thead className="border-b text-left text-xs text-muted-foreground">

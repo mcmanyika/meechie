@@ -57,7 +57,6 @@ function DonationLedger() {
       <div className="grid gap-5">
         <PageHeader
           title="Donations"
-          description="Card and bank gifts use Stripe Checkout. Checks, cash, and in-kind gifts are entered by staff. Completed gifts update the dashboard."
           actions={allowed("donations.manage") ? <Button onClick={() => { setEditing(null); setOpen(true); }}><Plus /> Record donation</Button> : null}
         />
         <EmbedButtonsPanel />

@@ -10,14 +10,13 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
       <header className="border-b">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2 font-semibold">
-            <span className="grid size-8 place-items-center rounded-lg bg-[#0b1f33] text-xs text-[#99f6e4]">MO</span>
+            <span className="grid size-8 place-items-center rounded-lg bg-[#0b1f33] text-xs text-[#99f6e4]">MP</span>
             {PRODUCT_NAME}
           </Link>
           <nav className="hidden items-center gap-6 text-sm md:flex">
-            <Link href="/features">Features</Link>
-            <Link href="/pricing">Pricing</Link>
-            <Link href="/demo">Demo</Link>
-            <Link href="/portal">Community portal</Link>
+            <Link href="/portal">Community</Link>
+            <Link href="/give/meechie">Give</Link>
+            <Link href="/demo">Staff demo</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link href="/" className={cn(buttonVariants({ variant: "ghost" }))}>Log in</Link>
@@ -29,7 +28,7 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
       <footer className="border-t">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:justify-between">
           <p>{PRODUCT_NAME} · {PRODUCT_TAGLINE}</p>
-          <p>Demonstration software. Sample organizations and prices are fictional.</p>
+          <p>themeechieproject.org · (214) 406-5090</p>
         </div>
       </footer>
     </div>

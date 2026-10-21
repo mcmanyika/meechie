@@ -81,7 +81,6 @@ export function ExecutiveDashboard() {
       <PageHeader
         eyebrow={organization.name}
         title={`Good to see you, ${user?.name.split(" ")[0] ?? "there"}`}
-        description="Operational figures on this page are calculated from demonstration records in the selected organization."
         actions={
           <>
             <Link href="/dashboard/events/new" className={cn(buttonVariants())}>

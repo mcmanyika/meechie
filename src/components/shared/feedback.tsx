@@ -1,9 +1,6 @@
 "use client";
 
-import Link from "next/link";
 import { toast } from "sonner";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "cn";
 import type { Result } from "@/lib/domain/workflows";
 
 export function notify(result: Result<unknown>, success: string) {
@@ -28,8 +25,8 @@ export function EmptyState({ title, body, action }: { title: string; body: strin
 }
 
 export function AccessDenied({
-  title = "This demo role cannot open that page",
-  body = "Switch the demo role in the header to preview another experience. Client-side roles are for demonstration only.",
+  title = "You do not have access to this page",
+  body = "Switch the staff role in the header if you are previewing another role, or sign in with a staff account.",
 }: {
   title?: string;
   body?: string;
@@ -39,21 +36,6 @@ export function AccessDenied({
       <p className="text-xs font-medium tracking-wide text-primary uppercase">Access</p>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">{title}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{body}</p>
-    </div>
-  );
-}
-
-export function PlanLock({ feature, plan }: { feature: string; plan: string }) {
-  return (
-    <div className="mx-auto max-w-lg py-16">
-      <p className="text-xs font-medium tracking-wide text-teal-700 uppercase dark:text-teal-300">Subscription</p>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight">{feature} is on the {plan} plan</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        This workspace&apos;s sample subscription does not include the module. The Meechie Project demonstration workspace uses Enterprise so the full product is available there.
-      </p>
-      <Link href="/pricing" className={cn(buttonVariants({ variant: "outline" }), "mt-5")}>
-        View sample plans
-      </Link>
     </div>
   );
 }

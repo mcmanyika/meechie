@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { DEMO_DISCLAIMER, PRODUCT_NAME } from "@/config/constants";
-import { APP_NAV, PLATFORM_NAV, TOUR_STEPS, type NavItem } from "@/config/navigation";
+import { APP_NAV, TOUR_STEPS, type NavItem } from "@/config/navigation";
 import { useSession } from "@/hooks/use-org";
 import { ROLE_LABELS, hasPermission } from "@/lib/permissions";
 import { formatRelative, titleCase } from "@/lib/format";
@@ -39,7 +39,7 @@ import {
 import { LoadingBlock } from "@/components/shared/feedback";
 import { cn } from "cn";
 
-export function AppShell({ children, variant = "workspace" }: { children: React.ReactNode; variant?: "workspace" | "platform" }) {
+export function AppShell({ children }: { children: React.ReactNode }) {
   const hydrated = useDemoStore((state) => state.hydrated);
   const collapsed = useDemoStore((state) => state.sidebarCollapsed);
   const setCollapsed = useDemoStore((state) => state.setSidebarCollapsed);
@@ -50,39 +50,37 @@ export function AppShell({ children, variant = "workspace" }: { children: React.
   if (!hydrated || !user) return <AuthGate />;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div data-app-chrome className="border-b bg-[#e7f4f1] px-4 py-2 text-center text-xs text-[#115e59] dark:bg-[#12352f] dark:text-[#ccfbf1]">
-        {DEMO_DISCLAIMER}
-      </div>
-      <div className="flex min-h-[calc(100vh-33px)]">
-        <aside
-          data-app-chrome
-          className={cn(
-            "sticky top-0 hidden h-[calc(100vh-33px)] shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex",
-            collapsed ? "w-[76px]" : "w-64",
-          )}
+    <div className="flex min-h-screen bg-background text-foreground">
+      <aside
+        data-app-chrome
+        className={cn(
+          "sticky top-0 hidden h-screen shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex",
+          collapsed ? "w-[76px]" : "w-64",
+        )}
+      >
+        <SidebarBody collapsed={collapsed} onNavigate={() => undefined} />
+        <button
+          type="button"
+          className="m-3 inline-flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent"
+          onClick={() => setCollapsed(!collapsed)}
         >
-          <SidebarBody variant={variant} collapsed={collapsed} onNavigate={() => undefined} />
-          <button
-            type="button"
-            className="m-3 inline-flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent"
-            onClick={() => setCollapsed(!collapsed)}
-          >
-            {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
-            {collapsed ? <span className="sr-only">Expand sidebar</span> : "Collapse"}
-          </button>
-        </aside>
-        <div className="min-w-0 flex-1">
-          <TopBar variant={variant} onMenu={() => setMobileNav(true)} />
-          <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">{children}</main>
+          {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
+          {collapsed ? <span className="sr-only">Expand sidebar</span> : "Collapse"}
+        </button>
+      </aside>
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <div data-app-chrome className="border-b bg-[#e7f4f1] px-4 py-2 text-center text-xs text-[#115e59] dark:bg-[#12352f] dark:text-[#ccfbf1]">
+          {DEMO_DISCLAIMER}
         </div>
+        <TopBar onMenu={() => setMobileNav(true)} />
+        <main className="w-full flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
       <Sheet open={mobileNav} onOpenChange={setMobileNav}>
-        <SheetContent side="left" className="w-[280px] bg-sidebar p-0 text-sidebar-foreground sm:max-w-xs">
+        <SheetContent side="left" className="h-full w-[280px] bg-sidebar p-0 text-sidebar-foreground sm:max-w-xs">
           <SheetHeader className="sr-only">
             <SheetTitle>Navigation</SheetTitle>
           </SheetHeader>
-          <SidebarBody variant={variant} collapsed={false} onNavigate={() => setMobileNav(false)} />
+          <SidebarBody collapsed={false} onNavigate={() => setMobileNav(false)} />
         </SheetContent>
       </Sheet>
       <Tour />
@@ -109,27 +107,26 @@ function AuthGate() {
   return null;
 }
 
-function SidebarBody({ variant, collapsed, onNavigate }: { variant: "workspace" | "platform"; collapsed: boolean; onNavigate: () => void }) {
+function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate: () => void }) {
   const pathname = usePathname();
   const { organization, allowed, user } = useSession();
   const setHelpOpen = useDemoStore((state) => state.setHelpOpen);
-  const groups = variant === "platform" ? [{ label: "Platform", items: PLATFORM_NAV }] : APP_NAV;
   return (
     <div className="flex h-full flex-col">
       <div className={cn("flex items-center gap-3 px-4 py-4", collapsed && "justify-center px-2")}>
         <div className="grid size-9 place-items-center rounded-lg bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
-          {variant === "platform" ? "OS" : organization?.logoText ?? "OS"}
+          {organization?.logoText ?? "MP"}
         </div>
         {collapsed ? null : (
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{variant === "platform" ? PRODUCT_NAME : organization?.name}</p>
-            <p className="truncate text-xs text-sidebar-foreground/60">{variant === "platform" ? "Platform admin" : organization?.city}</p>
+            <p className="truncate text-sm font-semibold">{organization?.name ?? PRODUCT_NAME}</p>
+            <p className="truncate text-xs text-sidebar-foreground/60">{organization?.city}</p>
           </div>
         )}
       </div>
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4" aria-label="Primary">
-        {groups.map((group) => {
-          const items = group.items.filter((item) => user && hasPermission(user.role, item.permission) && (variant === "platform" || allowed(item.permission)));
+        {APP_NAV.map((group) => {
+          const items = group.items.filter((item) => user && hasPermission(user.role, item.permission) && allowed(item.permission));
           if (items.length === 0) return null;
           return (
             <div key={group.label}>
@@ -195,15 +192,14 @@ function ProfileRow({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-function TopBar({ onMenu, variant }: { onMenu: () => void; variant: "workspace" | "platform" }) {
+function TopBar({ onMenu }: { onMenu: () => void }) {
   const pathname = usePathname();
-  const { organization, organizations, user, db } = useSession();
-  const setOrg = useDemoStore((state) => state.setOrg);
+  const { organization, user, db } = useSession();
   const setUser = useDemoStore((state) => state.setUser);
   const setSearch = useDemoStore((state) => state.setSearchOpen);
   const { theme, setTheme } = useTheme();
   const crumbs = useMemo(() => buildCrumbs(pathname, db, organization?.id ?? null), [pathname, db, organization?.id]);
-  const personas = db.users.filter((item) => item.organizationId === organization?.id || item.role === "platform_super_admin" || item.id === user?.id);
+  const personas = db.users.filter((item) => item.organizationId === organization?.id || item.id === user?.id);
   return (
     <header data-app-chrome className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/90 px-3 backdrop-blur sm:px-4">
       <Button variant="ghost" size="icon" className="md:hidden" onClick={onMenu} aria-label="Open navigation">
@@ -227,27 +223,10 @@ function TopBar({ onMenu, variant }: { onMenu: () => void; variant: "workspace" 
         <Button variant="ghost" size="icon" className="sm:hidden" aria-label="Search" onClick={() => setSearch(true)}>
           <Search />
         </Button>
-        {variant === "workspace" ? (
-          <label className="hidden items-center gap-2 text-xs text-muted-foreground lg:flex">
-            Organization
-            <select
-              aria-label="Organization switcher"
-              className="h-8 max-w-44 rounded-lg border bg-card px-2 text-sm text-foreground"
-              value={organization?.id ?? ""}
-              onChange={(event) => setOrg(event.target.value)}
-            >
-              {organizations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
         <label className="hidden items-center gap-2 text-xs text-muted-foreground xl:flex">
-          Demo role
+          Staff role
           <select
-            aria-label="Demo role switcher"
+            aria-label="Staff role switcher"
             className="h-8 max-w-48 rounded-lg border bg-card px-2 text-sm text-foreground"
             value={user?.id ?? ""}
             onChange={(event) => setUser(event.target.value)}
@@ -487,13 +466,13 @@ function navClass(active: boolean, collapsed: boolean) {
 }
 
 function isActive(pathname: string, href: string) {
-  if (href === "/dashboard" || href === "/platform") return pathname === href;
+  if (href === "/dashboard") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function buildCrumbs(pathname: string, db: ReturnType<typeof useSession>["db"], orgId: string | null) {
   const parts = pathname.split("/").filter(Boolean);
-  const crumbs = [{ href: parts[0] === "platform" ? "/platform" : "/dashboard", label: parts[0] === "platform" ? "Platform" : "Overview" }];
+  const crumbs = [{ href: "/dashboard", label: "Overview" }];
   if (parts.length === 1) return crumbs;
   const labels: Record<string, string> = {
     community: "Community",

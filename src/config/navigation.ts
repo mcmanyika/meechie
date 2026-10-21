@@ -1,5 +1,4 @@
 import {
-  BarChart3,
   Boxes,
   Building2,
   CalendarDays,
@@ -32,7 +31,7 @@ export interface NavGroup {
 
 export const APP_NAV: NavGroup[] = [
   {
-    label: "Workspace",
+    label: "Home",
     items: [{ href: "/dashboard", label: "Overview", icon: LayoutDashboard, permission: "dashboard.view", tour: "dashboard" }],
   },
   {
@@ -66,13 +65,6 @@ export const APP_NAV: NavGroup[] = [
   },
 ];
 
-export const PLATFORM_NAV: NavItem[] = [
-  { href: "/platform", label: "Overview", icon: LayoutDashboard, permission: "platform.manage" },
-  { href: "/platform/organizations", label: "Organizations", icon: Building2, permission: "platform.manage" },
-  { href: "/platform/subscriptions", label: "Subscriptions", icon: BarChart3, permission: "platform.manage" },
-  { href: "/platform/analytics", label: "Analytics", icon: PieChart, permission: "platform.manage" },
-];
-
 export const TOUR_STEPS = [
   {
     title: "Executive dashboard",
@@ -86,7 +78,7 @@ export const TOUR_STEPS = [
   },
   {
     title: "Event registration",
-    body: "The Back-to-School Community Giveaway is the sample workflow: publish, register, assign a volunteer, check in, then review the summary.",
+    body: "Back-to-School Meechie Giveaway is the sample workflow: publish, register, assign a volunteer, check in, then review the summary.",
     href: "/dashboard/events/evt_meechie_giveaway",
   },
   {

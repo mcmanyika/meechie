@@ -90,7 +90,6 @@ function CommunityDirectory() {
       <div className="grid gap-5">
         <PageHeader
           title="Community"
-          description="Fictional households and members for the selected organization. Profiles stay limited to contact, consent, and participation."
           actions={
             allowed("community.manage") ? (
               <Button

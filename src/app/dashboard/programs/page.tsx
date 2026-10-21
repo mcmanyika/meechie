@@ -22,7 +22,6 @@ export default function ProgramsPage() {
       <div className="grid gap-5">
         <PageHeader
           title="Programs"
-          description="Budgets, dates, and coordinators for the selected organization."
           actions={
             allowed("programs.manage") ? (
               <Button

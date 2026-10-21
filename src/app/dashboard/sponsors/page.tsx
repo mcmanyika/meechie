@@ -43,7 +43,7 @@ export default function SponsorsPage() {
   return (
     <RequireAccess permission="sponsors.view" entitlement="sponsors" feature="Sponsors">
       <div className="grid gap-5">
-        <PageHeader title="Sponsors" description="Sample partnership records. Contribution amounts are fictional." actions={allowed("sponsors.manage") ? <Button onClick={() => { setEditing(null); setOpen(true); }}><Plus /> Add sponsor</Button> : null} />
+        <PageHeader title="Sponsors" actions={allowed("sponsors.manage") ? <Button onClick={() => { setEditing(null); setOpen(true); }}><Plus /> Add sponsor</Button> : null} />
         <div className="grid gap-3">
           {sponsors.map((item) => (
             <article key={item.id} className="rounded-xl border bg-card p-4">

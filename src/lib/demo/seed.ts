@@ -1,11 +1,8 @@
 import { DEFAULT_PLANS } from "@/config/plans";
 import {
-  CEDAR_ORG_ID,
   DEMO_ADMIN_USER_ID,
   GIVEAWAY_EVENT_ID,
   MEECHIE_ORG_ID,
-  NORTHSIDE_ORG_ID,
-  PLATFORM_ADMIN_USER_ID,
 } from "@/config/constants";
 import type {
   Announcement,
@@ -117,9 +114,6 @@ function buildTenant(config: TenantConfig, now: Date) {
     ["Duncanville", "Duncanville", "75116"],
     ["Cedar Hill", "Cedar Hill", "75104"],
   ];
-  if (orgId === NORTHSIDE_ORG_ID) places.unshift(["Fort Worth", "Northside", "76106"]);
-  if (orgId === CEDAR_ORG_ID) places.unshift(["Austin", "East Austin", "78702"]);
-
   counts.forEach((count, householdIndex) => {
     const place = places[householdIndex % places.length];
     const anchor = person(memberIndex + householdIndex * 3);
@@ -183,13 +177,7 @@ function buildTenant(config: TenantConfig, now: Date) {
     budgetCents: 1800000 + index * 250000,
     startDate: iso(now, -180, 8).slice(0, 10),
     endDate: iso(now, 160, 8).slice(0, 10),
-    outcomes: [
-      {
-        id: `${program.id}_outcome`,
-        label: "Participant feedback",
-        narrative: "Staff may enter qualitative notes here. This text is a sample claim and is not a verified metric.",
-      },
-    ],
+    outcomes: [],
     createdAt,
     updatedAt: createdAt,
   }));
@@ -333,7 +321,9 @@ function buildTenant(config: TenantConfig, now: Date) {
     };
   });
 
-  const sponsorNames = ["Oak & Elm Credit Union", "Bluebonnet Logistics", "Trinity Market Co-op", "Magnolia Dental Group", "Redbird Print Studio", "Lakewood Family Foods", "Southside Builders", "Prairie Light Energy"];
+  const meechieSponsors = ["Wiser Group", "H&M Logistics", "Origin Bank", "Bank of Texas", "Data Capture Services", "Dallas Parks Partner", "Heart House Collab", "Hugs Café Collab"];
+  const sampleSponsors = ["Oak & Elm Credit Union", "Bluebonnet Logistics", "Trinity Market Co-op", "Magnolia Dental Group", "Redbird Print Studio", "Lakewood Family Foods", "Southside Builders", "Prairie Light Energy"];
+  const sponsorNames = orgId === MEECHIE_ORG_ID ? meechieSponsors : sampleSponsors;
   const tiers = ["community", "supporting", "impact", "strategic"] as const;
   const sponsors: Sponsor[] = Array.from({ length: config.sponsors }, (_, index) => ({
     id: `spo_${config.org.slug}_${String(index + 1).padStart(3, "0")}`,
@@ -343,7 +333,9 @@ function buildTenant(config: TenantConfig, now: Date) {
     email: `sponsor${index}@example.com`,
     phone: `(214) 555-01${String(40 + index).padStart(2, "0")}`,
     tier: tiers[index % tiers.length],
-    contributionCents: [250000, 750000, 1500000, 3000000][index % 4],
+    contributionCents: orgId === MEECHIE_ORG_ID
+      ? [500000, 100000, 100000, 75000, 30000, 50000, 50000, 50000][index % 8]
+      : [250000, 750000, 1500000, 3000000][index % 4],
     programIds: [programs[index % programs.length].id],
     startDate: iso(now, -200, 9).slice(0, 10),
     renewalDate: iso(now, index % 3 === 0 ? 20 : 120, 9).slice(0, 10),
@@ -381,19 +373,19 @@ function buildTenant(config: TenantConfig, now: Date) {
     ["Crayons", "School supplies"],
     ["Folders", "School supplies"],
     ["Calculators", "School supplies"],
-    ["Food packages", "Food"],
+    ["Thanksgiving grocery kits", "Food"],
     ["Rice bags", "Food"],
     ["Canned meals", "Food"],
     ["Produce boxes", "Food"],
-    ["Jackets", "Clothing"],
-    ["Kids clothing sets", "Clothing"],
-    ["Shoes", "Clothing"],
-    ["Infant clothing", "Clothing"],
+    ["Jerseys", "Sports"],
+    ["Basketballs", "Sports"],
+    ["Foam party supplies", "Event"],
+    ["Free merch packs", "Event"],
     ["Toys", "Toys"],
-    ["Children's books", "Toys"],
+    ["Gift cards (kids)", "Toys"],
     ["Hygiene kits", "Hygiene"],
-    ["Diaper packs", "Hygiene"],
-    ["Toothpaste", "Hygiene"],
+    ["Goody bags", "Event"],
+    ["Gingerbread kits", "Event"],
     ["Blankets", "Hygiene"],
   ];
   const inventoryItems: InventoryItem[] = catalog.slice(0, config.inventory).map(([name, category], index) => ({
@@ -465,7 +457,7 @@ function buildTenant(config: TenantConfig, now: Date) {
       id: `ann_${config.org.slug}_2`,
       organizationId: orgId,
       title: "Registration window",
-      body: "The Back-to-School Community Giveaway registration flow is available in the demo when this organization includes that event.",
+      body: "Back-to-School Meechie Giveaway registration is open in this workspace when that event is on the calendar.",
       audience: "Program team",
       publishedAt: iso(now, -1, 9),
       createdAt: iso(now, -1, 9),
@@ -547,12 +539,12 @@ function buildTenant(config: TenantConfig, now: Date) {
 
 function meechiePrograms() {
   return [
-    ["prog_meechie_bts", "Back-to-School Support", "active", "Seasonal supplies and family resource events."],
-    ["prog_meechie_food", "Community Food Assistance", "active", "Grocery and meal support activities."],
-    ["prog_meechie_youth", "Youth Empowerment", "active", "Mentoring and learning sessions for youth."],
-    ["prog_meechie_holiday", "Holiday Giving", "planned", "Seasonal distribution planned for the demonstration calendar."],
-    ["prog_meechie_outreach", "Family Outreach", "active", "Neighborhood outreach and family workshops."],
-    ["prog_meechie_wellness", "Community Wellness Access", "completed", "A completed sample program retained for reporting."],
+    ["prog_meechie_madness", "Meechie's March Madness", "active", "Annual basketball tournament fundraiser that brings joy and entertainment into the community (300+ people touched)."],
+    ["prog_meechie_summer", "Community Summer Bash", "active", "Free community block party with water games, foam party, live music, and merch giveaways (100+ people touched)."],
+    ["prog_meechie_bts", "Back-to-School Meechie", "active", "School supplies and backpacks, free haircuts for kids, free food, and a Dallas Fire Department fire truck show (600+ people touched)."],
+    ["prog_meechie_thanksgiving", "Thanksgiving Food Drive", "active", "Partnering with a local college to identify families and provide Thanksgiving groceries (~20 families)."],
+    ["prog_meechie_christmas", "Christmas Giveaway", "active", "City of Dallas recreation center giveaway of toys and gift cards for local kids (200+ kids)."],
+    ["prog_meechie_experience", "The Meechie Experience", "active", "Monthly after-school program at Timberglen Recreation Center: meal, activity, and a message of hope (35 kids per event)."],
   ].map(([id, name, status, summary]) => ({ id, name, status: status as Program["status"], summary }));
 }
 
@@ -567,73 +559,27 @@ export function createSeedDatabase(now = new Date()): DemoDatabase {
     name: "The Meechie Project",
     slug: "meechie",
     logoText: "MP",
-    description: "Demonstration workspace for a Dallas community nonprofit. People, gifts, and outcomes in this workspace are fictional.",
+    description:
+      "A Christian nonprofit in Dallas spreading the love and joy of God through community giveaways, programs, and events — resources for low-income areas, hope for youth, and education for the under-educated.",
     primaryColor: "#1D4ED8",
     secondaryColor: "#0F766E",
-    email: "hello@example.org",
-    phone: "(214) 555-0100",
-    website: "https://example.org/the-meechie-project",
-    addressLine: "1400 Community Way",
+    email: "themeechieproject@gmail.com",
+    phone: "(214) 406-5090",
+    website: "https://themeechieproject.org",
+    addressLine: "18616 Shadow Ridge Dr",
     city: "Dallas",
     state: "TX",
-    postalCode: "75215",
+    postalCode: "75287",
     timezone: "America/Chicago",
     currency: "USD",
     status: "active",
     portalEnabled: true,
-    portalWelcome: "Find an activity, offer your time, or ask about community resources. This public page uses fictional demonstration records.",
+    portalWelcome:
+      "Join an event, volunteer, or give. Our programs serve low-income families and youth across North Dallas — from Back-to-School Meechie to The Meechie Experience.",
     createdAt: stamped,
     updatedAt: stamped,
   });
-  const northside = organization({
-    id: NORTHSIDE_ORG_ID,
-    name: "Northside Family Alliance",
-    slug: "northside",
-    logoText: "NF",
-    description: "A second fictional nonprofit used to demonstrate tenant isolation.",
-    primaryColor: "#047857",
-    secondaryColor: "#B45309",
-    email: "northside@example.org",
-    phone: "(817) 555-0144",
-    website: "https://example.org/northside-family-alliance",
-    addressLine: "88 Alliance Avenue",
-    city: "Fort Worth",
-    state: "TX",
-    postalCode: "76106",
-    timezone: "America/Chicago",
-    currency: "USD",
-    status: "active",
-    portalEnabled: true,
-    portalWelcome: "Northside Family Alliance public preview. All records are fictional.",
-    createdAt: stamped,
-    updatedAt: stamped,
-  });
-  const cedar = organization({
-    id: CEDAR_ORG_ID,
-    name: "Cedar & Co. Community Lab",
-    slug: "cedar",
-    logoText: "CC",
-    description: "A fictional organization shown as suspended in the platform directory.",
-    primaryColor: "#7C3AED",
-    secondaryColor: "#0F172A",
-    email: "cedar@example.org",
-    phone: "(512) 555-0166",
-    website: "https://example.org/cedar-community-lab",
-    addressLine: "12 Lab Street",
-    city: "Austin",
-    state: "TX",
-    postalCode: "78702",
-    timezone: "America/Chicago",
-    currency: "USD",
-    status: "suspended",
-    portalEnabled: false,
-    portalWelcome: "This portal is turned off while the organization is suspended.",
-    createdAt: stamped,
-    updatedAt: stamped,
-  });
-
   const users: User[] = [
-    { id: PLATFORM_ADMIN_USER_ID, organizationId: null, name: "Avery Quinn", email: "avery.quinn@example.com", role: "platform_super_admin", title: "Platform super admin", avatarInitials: "AQ", createdAt: stamped, updatedAt: stamped },
     { id: DEMO_ADMIN_USER_ID, organizationId: MEECHIE_ORG_ID, name: "Jordan Hale", email: "jordan.hale@example.com", role: "organization_admin", title: "Executive director", avatarInitials: "JH", createdAt: stamped, updatedAt: stamped },
     { id: "user_maya", organizationId: MEECHIE_ORG_ID, name: "Maya Okonkwo", email: "maya.okonkwo@example.com", role: "program_manager", title: "Program manager", avatarInitials: "MO", createdAt: stamped, updatedAt: stamped },
     { id: "user_chris", organizationId: MEECHIE_ORG_ID, name: "Chris Delgado", email: "chris.delgado@example.com", role: "volunteer_coordinator", title: "Volunteer coordinator", avatarInitials: "CD", createdAt: stamped, updatedAt: stamped },
@@ -641,8 +587,6 @@ export function createSeedDatabase(now = new Date()): DemoDatabase {
     { id: "user_sam", organizationId: MEECHIE_ORG_ID, name: "Sam Rivera", email: "sam.rivera@example.com", role: "volunteer", title: "Volunteer", avatarInitials: "SR", volunteerId: "vol_meechie_001", createdAt: stamped, updatedAt: stamped },
     { id: "user_elena", organizationId: MEECHIE_ORG_ID, name: "Elena Brooks", email: "elena.brooks@example.com", role: "sponsor", title: "Sponsor contact", avatarInitials: "EB", sponsorId: "spo_meechie_001", createdAt: stamped, updatedAt: stamped },
     { id: "user_member", organizationId: MEECHIE_ORG_ID, name: "Rosa Santos", email: "rosa.santos@example.com", role: "community_member", title: "Community member", avatarInitials: "RS", createdAt: stamped, updatedAt: stamped },
-    { id: "user_dana", organizationId: NORTHSIDE_ORG_ID, name: "Dana Brooks", email: "dana.brooks@example.com", role: "organization_admin", title: "Director", avatarInitials: "DB", createdAt: stamped, updatedAt: stamped },
-    { id: "user_cedar", organizationId: CEDAR_ORG_ID, name: "Miles Bennett", email: "miles.bennett@example.com", role: "organization_admin", title: "Director", avatarInitials: "MB", createdAt: stamped, updatedAt: stamped },
   ];
 
   const programs = meechiePrograms();
@@ -650,8 +594,8 @@ export function createSeedDatabase(now = new Date()): DemoDatabase {
   const meechieTenant = buildTenant(
     {
       org: meechie,
-      admin: users[1],
-      extraUsers: users.slice(2, 5),
+      admin: users[0],
+      extraUsers: users.slice(1, 4),
       planId: "enterprise",
       price: null,
       seats: null,
@@ -664,76 +608,21 @@ export function createSeedDatabase(now = new Date()): DemoDatabase {
       donations: 0,
       programs,
       events: [
-        { id: GIVEAWAY_EVENT_ID, name: "Back-to-School Community Giveaway", programId: p.prog_meechie_bts, status: "registration_open", day: 18, capacity: 120, regs: 8, attended: 0, category: "distribution", location: "Community Hall, 1400 Community Way" },
-        { id: "evt_meechie_pantry", name: "Saturday Family Food Pantry", programId: p.prog_meechie_food, status: "registration_open", day: 8, capacity: 80, regs: 6, attended: 0, category: "distribution", location: "Fellowship Room" },
-        { id: "evt_meechie_stem", name: "Teen STEM Saturday", programId: p.prog_meechie_youth, status: "full", day: 12, capacity: 6, regs: 6, attended: 0, category: "workshop", location: "Learning Lab" },
-        { id: "evt_meechie_mentor", name: "Youth Mentoring Circle", programId: p.prog_meechie_youth, status: "published", day: 26, capacity: 24, regs: 0, attended: 0, category: "workshop", location: "Learning Lab" },
-        { id: "evt_meechie_plan", name: "Holiday Toy Planning Night", programId: p.prog_meechie_holiday, status: "draft", day: 40, capacity: 20, regs: 0, attended: 0, category: "outreach", location: "Conference Room" },
-        { id: "evt_meechie_sponsor", name: "Sponsor Appreciation Breakfast", programId: p.prog_meechie_outreach, status: "cancelled", day: -24, capacity: 40, regs: 0, attended: 0, category: "fundraiser", location: "Community Hall" },
-        { id: "evt_meechie_health", name: "Community Health Resource Fair", programId: p.prog_meechie_wellness, status: "completed", day: -70, capacity: 100, regs: 12, attended: 12, category: "outreach", location: "Community Hall" },
-        { id: "evt_meechie_preview", name: "Spring School Supply Preview", programId: p.prog_meechie_bts, status: "completed", day: -56, capacity: 80, regs: 11, attended: 11, category: "distribution", location: "Community Hall" },
-        { id: "evt_meechie_orientation", name: "Volunteer Orientation", programId: p.prog_meechie_outreach, status: "completed", day: -48, capacity: 40, regs: 10, attended: 10, category: "volunteer", location: "Conference Room" },
-        { id: "evt_meechie_walk", name: "Oak Cliff Outreach Walk", programId: p.prog_meechie_outreach, status: "completed", day: -36, capacity: 60, regs: 10, attended: 10, category: "outreach", location: "Oak Cliff Trailhead" },
-        { id: "evt_meechie_meals", name: "Summer Meal Kickoff", programId: p.prog_meechie_food, status: "completed", day: -27, capacity: 90, regs: 9, attended: 9, category: "distribution", location: "Fellowship Room" },
-        { id: "evt_meechie_finance", name: "Family Finance Workshop", programId: p.prog_meechie_outreach, status: "completed", day: -18, capacity: 30, regs: 8, attended: 8, category: "workshop", location: "Learning Lab" },
-        { id: "evt_meechie_coats", name: "Coat Distribution Day", programId: p.prog_meechie_holiday, status: "completed", day: -14, capacity: 70, regs: 8, attended: 8, category: "distribution", location: "Community Hall" },
-        { id: "evt_meechie_grocery", name: "Senior Grocery Delivery", programId: p.prog_meechie_food, status: "completed", day: -9, capacity: 25, regs: 7, attended: 7, category: "distribution", location: "Annex" },
-        { id: "evt_meechie_cleanup", name: "Neighborhood Cleanup", programId: p.prog_meechie_outreach, status: "completed", day: -4, capacity: 40, regs: 5, attended: 5, category: "volunteer", location: "South Dallas block" },
-      ],
-    },
-    now,
-  );
-
-  const northPrograms = [
-    { id: "prog_north_food", name: "Pantry Partners", status: "active" as const, summary: "Food support for the Fort Worth sample tenant." },
-    { id: "prog_north_youth", name: "After-School Studio", status: "active" as const, summary: "Youth activities for the Fort Worth sample tenant." },
-    { id: "prog_north_family", name: "Family Navigation", status: "planned" as const, summary: "A planned sample program." },
-  ];
-  const northTenant = buildTenant(
-    {
-      org: northside,
-      admin: users.find((user) => user.id === "user_dana")!,
-      extraUsers: [],
-      planId: "growth",
-      price: 14900,
-      seats: 15,
-      households: 12,
-      members: 28,
-      volunteers: 8,
-      donors: 4,
-      sponsors: 2,
-      inventory: 6,
-      donations: 0,
-      programs: northPrograms,
-      events: [
-        { id: "evt_north_pantry", name: "Weeknight Pantry", programId: "prog_north_food", status: "registration_open", day: 10, capacity: 40, regs: 8, attended: 0, category: "distribution", location: "Alliance Hall" },
-        { id: "evt_north_studio", name: "Studio Open House", programId: "prog_north_youth", status: "published", day: 21, capacity: 30, regs: 0, attended: 0, category: "workshop", location: "Studio Room" },
-        { id: "evt_north_fair", name: "Spring Resource Fair", programId: "prog_north_family", status: "completed", day: -30, capacity: 50, regs: 12, attended: 12, category: "outreach", location: "Alliance Hall" },
-        { id: "evt_north_draft", name: "Budget Draft Session", programId: "prog_north_family", status: "draft", day: 33, capacity: 12, regs: 0, attended: 0, category: "workshop", location: "Office" },
-      ],
-    },
-    now,
-  );
-
-  const cedarTenant = buildTenant(
-    {
-      org: cedar,
-      admin: users.find((user) => user.id === "user_cedar")!,
-      extraUsers: [],
-      planId: "starter",
-      price: 4900,
-      seats: 3,
-      households: 4,
-      members: 10,
-      volunteers: 3,
-      donors: 2,
-      sponsors: 1,
-      inventory: 3,
-      donations: 0,
-      programs: [{ id: "prog_cedar_main", name: "Neighborhood Hours", status: "active", summary: "The only sample program on a suspended tenant." }],
-      events: [
-        { id: "evt_cedar_past", name: "Open Hours", programId: "prog_cedar_main", status: "completed", day: -15, capacity: 20, regs: 6, attended: 4, category: "outreach", location: "Lab Street" },
-        { id: "evt_cedar_next", name: "Planning Circle", programId: "prog_cedar_main", status: "draft", day: 14, capacity: 12, regs: 0, attended: 0, category: "workshop", location: "Lab Street" },
+        { id: GIVEAWAY_EVENT_ID, name: "Back-to-School Meechie Giveaway", programId: p.prog_meechie_bts, status: "registration_open", day: 18, capacity: 600, regs: 8, attended: 0, category: "distribution", location: "Dallas community site" },
+        { id: "evt_meechie_experience", name: "The Meechie Experience", programId: p.prog_meechie_experience, status: "registration_open", day: 8, capacity: 35, regs: 6, attended: 0, category: "workshop", location: "Timberglen Recreation Center" },
+        { id: "evt_meechie_madness", name: "Meechie's March Madness — Volunteer spots", programId: p.prog_meechie_madness, status: "full", day: 12, capacity: 6, regs: 6, attended: 0, category: "fundraiser", location: "Community gymnasium" },
+        { id: "evt_meechie_thanksgiving", name: "Thanksgiving Food Drive", programId: p.prog_meechie_thanksgiving, status: "published", day: 26, capacity: 20, regs: 0, attended: 0, category: "distribution", location: "Partner college campus" },
+        { id: "evt_meechie_christmas_plan", name: "Christmas Giveaway Planning", programId: p.prog_meechie_christmas, status: "draft", day: 40, capacity: 20, regs: 0, attended: 0, category: "outreach", location: "City of Dallas recreation center" },
+        { id: "evt_meechie_sponsor", name: "Sponsor Appreciation Breakfast", programId: p.prog_meechie_madness, status: "cancelled", day: -24, capacity: 40, regs: 0, attended: 0, category: "fundraiser", location: "Shadow Ridge gathering space" },
+        { id: "evt_meechie_summer", name: "Community Summer Bash", programId: p.prog_meechie_summer, status: "completed", day: -70, capacity: 100, regs: 12, attended: 12, category: "outreach", location: "Neighborhood block party site" },
+        { id: "evt_meechie_bts_past", name: "Back-to-School Meechie 2025", programId: p.prog_meechie_bts, status: "completed", day: -56, capacity: 600, regs: 11, attended: 11, category: "distribution", location: "Dallas community site" },
+        { id: "evt_meechie_orientation", name: "Volunteer Orientation", programId: p.prog_meechie_experience, status: "completed", day: -48, capacity: 40, regs: 10, attended: 10, category: "volunteer", location: "Timberglen Recreation Center" },
+        { id: "evt_meechie_homeless", name: "Monthly Homeless Outreach", programId: p.prog_meechie_experience, status: "completed", day: -36, capacity: 60, regs: 10, attended: 10, category: "outreach", location: "Partner church campus" },
+        { id: "evt_meechie_experience_aug", name: "The Meechie Experience — August", programId: p.prog_meechie_experience, status: "completed", day: -27, capacity: 35, regs: 9, attended: 9, category: "workshop", location: "Timberglen Recreation Center" },
+        { id: "evt_meechie_experience_sep", name: "The Meechie Experience — September", programId: p.prog_meechie_experience, status: "completed", day: -18, capacity: 35, regs: 8, attended: 8, category: "workshop", location: "Timberglen Recreation Center" },
+        { id: "evt_meechie_christmas_past", name: "Christmas Giveaway 2025", programId: p.prog_meechie_christmas, status: "completed", day: -14, capacity: 200, regs: 8, attended: 8, category: "distribution", location: "City of Dallas recreation center" },
+        { id: "evt_meechie_thanksgiving_past", name: "Thanksgiving Food Drive 2025", programId: p.prog_meechie_thanksgiving, status: "completed", day: -9, capacity: 20, regs: 7, attended: 7, category: "distribution", location: "Partner college campus" },
+        { id: "evt_meechie_south", name: "South Dallas School Outreach Visit", programId: p.prog_meechie_bts, status: "completed", day: -4, capacity: 40, regs: 5, attended: 5, category: "outreach", location: "South Dallas middle school" },
       ],
     },
     now,
@@ -741,29 +630,26 @@ export function createSeedDatabase(now = new Date()): DemoDatabase {
 
   const subscriptions: Subscription[] = [
     { id: "sub_meechie", organizationId: MEECHIE_ORG_ID, planId: "enterprise", status: "active", seatLimit: null, monthlyPriceCents: null, startedAt: iso(now, -200, 9).slice(0, 10), renewsAt: iso(now, 165, 9).slice(0, 10), createdAt: stamped, updatedAt: stamped },
-    { id: "sub_northside", organizationId: NORTHSIDE_ORG_ID, planId: "growth", status: "active", seatLimit: 15, monthlyPriceCents: 14900, startedAt: iso(now, -120, 9).slice(0, 10), renewsAt: iso(now, 20, 9).slice(0, 10), createdAt: stamped, updatedAt: stamped },
-    { id: "sub_cedar", organizationId: CEDAR_ORG_ID, planId: "starter", status: "past_due", seatLimit: 3, monthlyPriceCents: 4900, startedAt: iso(now, -90, 9).slice(0, 10), renewsAt: iso(now, -10, 9).slice(0, 10), createdAt: stamped, updatedAt: stamped },
   ];
 
-  const parts = [meechieTenant, northTenant, cedarTenant];
   const database: DemoDatabase = {
     version: 1,
     seededAt: now.toISOString(),
-    organizations: [meechie, northside, cedar],
+    organizations: [meechie],
     users,
     plans: DEFAULT_PLANS.map((plan) => ({ ...plan, features: [...plan.features], entitlements: [...plan.entitlements] })),
     subscriptions,
-    households: parts.flatMap((part) => part.households),
-    members: parts.flatMap((part) => part.members),
-    programs: parts.flatMap((part) => part.programs),
-    events: parts.flatMap((part) => part.events),
-    registrations: parts.flatMap((part) => part.registrations),
-    attendance: parts.flatMap((part) => part.attendance),
-    volunteers: parts.flatMap((part) => part.volunteers),
-    assignments: parts.flatMap((part) => part.assignments),
-    serviceLogs: parts.flatMap((part) => part.serviceLogs),
-    donors: parts.flatMap((part) => part.donors),
-    donations: parts.flatMap((part) => part.donations),
+    households: meechieTenant.households,
+    members: meechieTenant.members,
+    programs: meechieTenant.programs,
+    events: meechieTenant.events,
+    registrations: meechieTenant.registrations,
+    attendance: meechieTenant.attendance,
+    volunteers: meechieTenant.volunteers,
+    assignments: meechieTenant.assignments,
+    serviceLogs: meechieTenant.serviceLogs,
+    donors: meechieTenant.donors,
+    donations: meechieTenant.donations,
     donateButtons: [
       {
         id: "btn_meechie_website",
@@ -778,13 +664,13 @@ export function createSeedDatabase(now = new Date()): DemoDatabase {
         updatedAt: stamped,
       } satisfies DonateButton,
     ],
-    sponsors: parts.flatMap((part) => part.sponsors),
-    inventoryItems: parts.flatMap((part) => part.inventoryItems),
-    inventoryMovements: parts.flatMap((part) => part.inventoryMovements),
-    expenses: parts.flatMap((part) => part.expenses),
-    announcements: parts.flatMap((part) => part.announcements),
-    templates: parts.flatMap((part) => part.templates),
-    groups: parts.flatMap((part) => part.groups),
+    sponsors: meechieTenant.sponsors,
+    inventoryItems: meechieTenant.inventoryItems,
+    inventoryMovements: meechieTenant.inventoryMovements,
+    expenses: meechieTenant.expenses,
+    announcements: meechieTenant.announcements,
+    templates: meechieTenant.templates,
+    groups: meechieTenant.groups,
     campaigns: [
       {
         id: "cmp_meechie_seed",
@@ -801,7 +687,7 @@ export function createSeedDatabase(now = new Date()): DemoDatabase {
         updatedAt: iso(now, -3, 15),
       },
     ],
-    assistanceRequests: parts.flatMap((part) => part.assistance),
+    assistanceRequests: meechieTenant.assistance,
     volunteerInterests: [
       {
         id: "vin_meechie_1",
@@ -836,7 +722,7 @@ export function createSeedDatabase(now = new Date()): DemoDatabase {
         action: "demo.seeded",
         entityType: "organization",
         entityId: MEECHIE_ORG_ID,
-        summary: "Demonstration workspace loaded with fictional records.",
+        summary: "The Meechie Project workspace loaded.",
         createdAt: now.toISOString(),
       },
     ],

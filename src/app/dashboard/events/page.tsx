@@ -33,7 +33,6 @@ export default function EventsPage() {
       <div className="grid gap-5">
         <PageHeader
           title="Events"
-          description="Calendar, capacity, and the Back-to-School Community Giveaway workflow live here."
           actions={
             <>
               <button type="button" className={cn(buttonVariants({ variant: mode === "list" ? "default" : "outline" }))} onClick={() => setMode("list")}>

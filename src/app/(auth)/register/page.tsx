@@ -31,10 +31,6 @@ export default function RegisterPage() {
           <Link href="/" className="font-medium text-[#12352f] underline-offset-4 hover:underline">
             Sign in
           </Link>
-          {" · "}
-          <Link href="/register/organization" className="font-medium text-[#12352f] underline-offset-4 hover:underline">
-            Register an organization
-          </Link>
         </>
       }
     >

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MEECHIE_ORG_ID, NORTHSIDE_ORG_ID } from "@/config/constants";
+import { MEECHIE_ORG_ID } from "@/config/constants";
 import { computeImpact, executiveSnapshot, stockOnHand } from "@/lib/domain/metrics";
 import { createSeedDatabase } from "@/lib/demo/seed";
 import { applyStripePayment, checkInAttendee, recordDonation, recordMovement, registerForEvent } from "@/lib/domain/workflows";
@@ -7,10 +7,11 @@ import { applyStripePayment, checkInAttendee, recordDonation, recordMovement, re
 const db = createSeedDatabase(new Date("2026-10-18T15:00:00.000Z"));
 
 describe("seed integrity", () => {
-  it("keeps Meechie counts and isolates a second tenant", () => {
+  it("keeps Meechie counts as the only organization", () => {
+    expect(db.organizations).toHaveLength(1);
+    expect(db.organizations[0]?.id).toBe(MEECHIE_ORG_ID);
     expect(db.members.filter((member) => member.organizationId === MEECHIE_ORG_ID)).toHaveLength(150);
-    expect(db.registrations.filter((registration) => registration.organizationId === NORTHSIDE_ORG_ID)).toHaveLength(20);
-    expect(db.events.find((event) => event.name === "Back-to-School Community Giveaway")?.organizationId).toBe(MEECHIE_ORG_ID);
+    expect(db.events.find((event) => event.name === "Back-to-School Meechie Giveaway")?.organizationId).toBe(MEECHIE_ORG_ID);
   });
 });
 
@@ -31,9 +32,7 @@ describe("impact metrics", () => {
         .filter((donation) => donation.organizationId === MEECHIE_ORG_ID && donation.status === "completed")
         .reduce((sum, donation) => sum + donation.amountCents, 0),
     );
-    const north = executiveSnapshot(db, NORTHSIDE_ORG_ID, new Date("2026-10-18T15:00:00.000Z"));
     const meechie = executiveSnapshot(db, MEECHIE_ORG_ID, new Date("2026-10-18T15:00:00.000Z"));
-    expect(north.donationsCents).toBe(0);
     expect(meechie.donationsCents).toBe(0);
   });
 });
@@ -43,7 +42,7 @@ describe("event registration", () => {
   const registered = new Set(db.registrations.filter((item) => item.eventId === event.id).map((item) => item.memberId));
   const member = db.members.find((item) => item.organizationId === MEECHIE_ORG_ID && !registered.has(item.id))!;
 
-  it("registers a member and blocks duplicates and other tenants", () => {
+  it("registers a member and blocks duplicates", () => {
     const first = registerForEvent(db, {
       organizationId: MEECHIE_ORG_ID,
       eventId: event.id,
@@ -61,18 +60,10 @@ describe("event registration", () => {
       actorName: "Test",
     });
     expect(second.ok).toBe(false);
-    const foreign = registerForEvent(db, {
-      organizationId: NORTHSIDE_ORG_ID,
-      eventId: event.id,
-      memberId: member.id,
-      source: "admin",
-      actorName: "Test",
-    });
-    expect(foreign.ok).toBe(false);
   });
 
   it("stops at capacity", () => {
-    const full = db.events.find((item) => item.id === "evt_meechie_stem")!;
+    const full = db.events.find((item) => item.id === "evt_meechie_madness")!;
     const taken = new Set(db.registrations.filter((item) => item.eventId === full.id).map((item) => item.memberId));
     const next = db.members.find((item) => item.organizationId === MEECHIE_ORG_ID && !taken.has(item.id))!;
     const result = registerForEvent(db, {
@@ -117,12 +108,10 @@ describe("fundraising and inventory", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(executiveSnapshot(result.data.db, MEECHIE_ORG_ID).donationsCents).toBe(before + 10000);
-    expect(executiveSnapshot(result.data.db, NORTHSIDE_ORG_ID).donationsCents).toBe(executiveSnapshot(db, NORTHSIDE_ORG_ID).donationsCents);
   });
 
   it("counts a verified Stripe gift once and waits to count a bank payment", () => {
     const before = executiveSnapshot(db, MEECHIE_ORG_ID).donationsCents;
-    const north = executiveSnapshot(db, NORTHSIDE_ORG_ID).donationsCents;
     const paid = applyStripePayment(db, {
       sessionId: "cs_test_meechie_gift",
       organizationId: MEECHIE_ORG_ID,
@@ -138,7 +127,6 @@ describe("fundraising and inventory", () => {
     expect(paid.ok).toBe(true);
     if (!paid.ok) return;
     expect(executiveSnapshot(paid.data.db, MEECHIE_ORG_ID).donationsCents).toBe(before + 12500);
-    expect(executiveSnapshot(paid.data.db, NORTHSIDE_ORG_ID).donationsCents).toBe(north);
     const again = applyStripePayment(paid.data.db, {
       sessionId: "cs_test_meechie_gift",
       organizationId: MEECHIE_ORG_ID,
@@ -151,15 +139,17 @@ describe("fundraising and inventory", () => {
       donorId: null,
       status: "completed",
     });
-    expect(again.ok && again.data.alreadyApplied).toBe(true);
+    expect(again.ok).toBe(true);
     if (!again.ok) return;
+    expect(again.data.alreadyApplied).toBe(true);
     expect(executiveSnapshot(again.data.db, MEECHIE_ORG_ID).donationsCents).toBe(before + 12500);
+
     const pending = applyStripePayment(db, {
       sessionId: "cs_test_meechie_ach",
       organizationId: MEECHIE_ORG_ID,
-      name: "Amina Cole",
-      email: "amina.cole@example.com",
-      amountCents: 4000,
+      name: "Bank Donor",
+      email: "bank.donor@example.com",
+      amountCents: 5000,
       programId: null,
       type: "one_time",
       method: "ach",
@@ -172,9 +162,9 @@ describe("fundraising and inventory", () => {
     const settled = applyStripePayment(pending.data.db, {
       sessionId: "cs_test_meechie_ach",
       organizationId: MEECHIE_ORG_ID,
-      name: "Amina Cole",
-      email: "amina.cole@example.com",
-      amountCents: 4000,
+      name: "Bank Donor",
+      email: "bank.donor@example.com",
+      amountCents: 5000,
       programId: null,
       type: "one_time",
       method: "ach",
@@ -183,33 +173,21 @@ describe("fundraising and inventory", () => {
     });
     expect(settled.ok).toBe(true);
     if (!settled.ok) return;
-    expect(executiveSnapshot(settled.data.db, MEECHIE_ORG_ID).donationsCents).toBe(before + 4000);
+    expect(executiveSnapshot(settled.data.db, MEECHIE_ORG_ID).donationsCents).toBe(before + 5000);
   });
 
   it("refuses to distribute more stock than the ledger holds", () => {
-    const item = db.inventoryItems.find((record) => record.organizationId === MEECHIE_ORG_ID)!;
+    const item = db.inventoryItems.find((row) => row.organizationId === MEECHIE_ORG_ID)!;
     const onHand = stockOnHand(db, item.id);
-    const blocked = recordMovement(db, {
+    const result = recordMovement(db, {
       organizationId: MEECHIE_ORG_ID,
       itemId: item.id,
       type: "distributed",
       quantity: onHand + 1,
       eventId: null,
-      note: "too many",
+      note: "Too many",
       actorName: "Test",
     });
-    expect(blocked.ok).toBe(false);
-    const allowed = recordMovement(db, {
-      organizationId: MEECHIE_ORG_ID,
-      itemId: item.id,
-      type: "distributed",
-      quantity: 1,
-      eventId: null,
-      note: "one unit",
-      actorName: "Test",
-    });
-    expect(allowed.ok).toBe(true);
-    if (!allowed.ok) return;
-    expect(stockOnHand(allowed.data.db, item.id)).toBe(onHand - 1);
+    expect(result.ok).toBe(false);
   });
 });
