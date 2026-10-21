@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { MEECHIE_ORG_ID, PRODUCT_NAME } from "@/config/constants";
 import { useDemoStore } from "@/stores/demo-store";
 import { LoadingBlock } from "@/components/shared/feedback";
@@ -18,8 +19,24 @@ const links = [
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const hydrated = useDemoStore((state) => state.hydrated);
   const org = useDemoStore((state) => state.db.organizations.find((item) => item.id === MEECHIE_ORG_ID));
+  const userId = useDemoStore((state) => state.userId);
+  const user = useDemoStore((state) => state.db.users.find((item) => item.id === userId));
   const pathname = usePathname();
-  if (!hydrated || !org) return <div className="mx-auto max-w-3xl px-4 py-10"><LoadingBlock /></div>;
+  const router = useRouter();
+
+  useEffect(() => {
+    if (hydrated && user?.accountStatus === "pending") {
+      router.replace("/pending");
+    }
+  }, [hydrated, user, router]);
+
+  if (!hydrated || !org || user?.accountStatus === "pending") {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-10">
+        <LoadingBlock />
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-white text-black">
       <header className="border-b-2 border-black bg-white">

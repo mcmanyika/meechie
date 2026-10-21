@@ -9,6 +9,7 @@ export type Role =
   | "sponsor";
 
 export type OrgStatus = "active" | "suspended" | "trial";
+export type AccountStatus = "pending" | "active";
 export type PlanId = "starter" | "growth" | "enterprise";
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled";
 
@@ -84,6 +85,7 @@ export interface User {
   role: Role;
   title: string;
   avatarInitials: string;
+  accountStatus: AccountStatus;
   volunteerId?: string;
   sponsorId?: string;
   createdAt: string;

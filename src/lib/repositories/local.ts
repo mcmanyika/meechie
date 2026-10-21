@@ -1,13 +1,19 @@
 import { MEECHIE_ORG_ID } from "@/config/constants";
 import { saveDatabase, loadDatabase } from "@/lib/demo/storage";
 import { createSeedDatabase } from "@/lib/demo/seed";
-import type { DemoDatabase, DonateButton } from "@/types/models";
+import type { DemoDatabase, DonateButton, User } from "@/types/models";
 
 function migrate(database: DemoDatabase): DemoDatabase {
   const needsButtons = !Array.isArray(database.donateButtons);
   const donations = database.donations.filter((donation) => !donation.reference.startsWith("SIM-"));
   const needsDonations = donations.length !== database.donations.length;
-  if (!needsButtons && !needsDonations) return database;
+  const users = database.users.map((user) =>
+    user.accountStatus === "pending" || user.accountStatus === "active"
+      ? user
+      : ({ ...user, accountStatus: "active" } satisfies User),
+  );
+  const needsUsers = users.some((user, index) => user !== database.users[index]);
+  if (!needsButtons && !needsDonations && !needsUsers) return database;
   const now = new Date().toISOString();
   const seededButton: DonateButton = {
     id: "btn_meechie_website",
@@ -23,6 +29,7 @@ function migrate(database: DemoDatabase): DemoDatabase {
   };
   return {
     ...database,
+    users,
     donateButtons: needsButtons ? [seededButton] : database.donateButtons,
     donations,
   };

@@ -6,7 +6,7 @@ import { demoRepository } from "@/lib/repositories/local";
 import { createSeedDatabase } from "@/lib/demo/seed";
 import { loadDatabase, loadSession, saveSession } from "@/lib/demo/storage";
 import { createId } from "@/lib/ids";
-import { hasPermission, type Permission } from "@/lib/permissions";
+import { ROLE_LABELS, hasPermission, type Permission } from "@/lib/permissions";
 import {
   appendAudit,
   assignVolunteer,
@@ -58,8 +58,9 @@ interface DemoStore {
   hydrate: () => Promise<void>;
   resetDemo: () => Promise<void>;
   enterDemo: (userId?: string) => void;
-  enterByEmail: (email: string) => Result<{ role: User["role"] }>;
+  enterByEmail: (email: string) => Result<{ role: User["role"]; accountStatus: User["accountStatus"] }>;
   registerUser: (input: { name: string; email: string }) => Result<User>;
+  activateUser: (userId: string, role: User["role"]) => Result<User>;
   exitDemo: () => void;
   setOrg: (orgId: string) => void;
   setUser: (userId: string) => void;
@@ -189,7 +190,7 @@ export const useDemoStore = create<DemoStore>((set, get) => {
       if (!user) return fail("No The Meechie Project account is linked to this email yet.");
       set({ userId: user.id, orgId: MEECHIE_ORG_ID });
       sessionFrom(get());
-      return { ok: true, data: { role: user.role } };
+      return { ok: true, data: { role: user.role, accountStatus: user.accountStatus ?? "active" } };
     },
 
     registerUser: (input) => {
@@ -205,13 +206,14 @@ export const useDemoStore = create<DemoStore>((set, get) => {
         name,
         email,
         role: "community_member",
-        title: "Community member",
+        title: "Pending staff access",
         avatarInitials: name
           .split(/\s+/)
           .filter(Boolean)
           .slice(0, 2)
           .map((part) => part[0]?.toUpperCase() ?? "")
           .join("") || "CM",
+        accountStatus: "pending",
         createdAt: now,
         updatedAt: now,
       };
@@ -223,11 +225,41 @@ export const useDemoStore = create<DemoStore>((set, get) => {
           "user.registered",
           "user",
           user.id,
-          `${user.name} created an account.`,
+          `${user.name} requested staff access.`,
         ),
       );
       set({ userId: user.id, orgId: MEECHIE_ORG_ID });
       sessionFrom(get());
+      return { ok: true, data: user };
+    },
+
+    activateUser: (userId, role) => {
+      const who = actor("settings.manage");
+      if (!who.ok) return who;
+      const existing = get().db.users.find((item) => item.id === userId);
+      if (!existing) return fail("Account not found.");
+      if (existing.accountStatus === "active" && existing.role === role) {
+        return fail("That account is already active with this role.");
+      }
+      const now = new Date().toISOString();
+      const user: User = {
+        ...existing,
+        role,
+        title: ROLE_LABELS[role],
+        accountStatus: "active",
+        updatedAt: now,
+      };
+      commit(
+        appendAudit(
+          { ...get().db, users: get().db.users.map((item) => (item.id === userId ? user : item)) },
+          who.data.orgId,
+          who.data.name,
+          "user.activated",
+          "user",
+          user.id,
+          `${who.data.name} activated ${user.name} as ${ROLE_LABELS[role]}.`,
+        ),
+      );
       return { ok: true, data: user };
     },
 

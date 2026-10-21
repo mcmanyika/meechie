@@ -24,7 +24,7 @@ export default function RegisterPage() {
   return (
     <AuthShell
       title="Create an account"
-      description="Register with your name, email, and password."
+      description="Register with your name, email, and password. An admin must activate your account before you can use the staff dashboard."
       footer={
         <>
           Already have an account?{" "}
@@ -55,8 +55,8 @@ export default function RegisterPage() {
             toast.error(result.error);
             return;
           }
-          toast.success("Account created.");
-          router.push("/portal");
+          toast.success("Account created. An admin must activate it before dashboard access.");
+          router.push("/pending");
         })}
       >
         <div className="grid gap-1.5">

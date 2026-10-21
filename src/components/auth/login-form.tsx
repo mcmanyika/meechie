@@ -10,12 +10,15 @@ import { LoadingBlock } from "@/components/shared/feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DEMO_ADMIN_USER_ID } from "@/config/constants";
+import { DEMO_ADMIN_USER_ID, STAFF_ROLES } from "@/config/constants";
 import { isAuthConfigured, signInWithPassword } from "@/lib/firebase/auth";
 import { loginSchema, type LoginFormValues } from "@/lib/validations/schemas";
 import { useDemoStore } from "@/stores/demo-store";
+import type { AccountStatus, Role } from "@/types/models";
 
-function destinationForRole(role: string) {
+function destinationForAccount(role: Role, accountStatus: AccountStatus) {
+  if (accountStatus === "pending") return "/pending";
+  if (STAFF_ROLES.includes(role as (typeof STAFF_ROLES)[number])) return "/dashboard";
   if (role === "community_member" || role === "volunteer" || role === "sponsor") return "/portal";
   return "/dashboard";
 }
@@ -80,8 +83,12 @@ export function LoginForm() {
             toast.error(session.error);
             return;
           }
-          toast.success("Signed in.");
-          router.push(destinationForRole(session.data.role));
+          toast.success(
+            session.data.accountStatus === "pending"
+              ? "Signed in. Waiting for an admin to activate your account."
+              : "Signed in.",
+          );
+          router.push(destinationForAccount(session.data.role, session.data.accountStatus));
         })}
       >
         <div className="grid gap-1.5">

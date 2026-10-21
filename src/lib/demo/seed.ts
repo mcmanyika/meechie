@@ -580,13 +580,13 @@ export function createSeedDatabase(now = new Date()): DemoDatabase {
     updatedAt: stamped,
   });
   const users: User[] = [
-    { id: DEMO_ADMIN_USER_ID, organizationId: MEECHIE_ORG_ID, name: "Jordan Hale", email: "jordan.hale@example.com", role: "organization_admin", title: "Executive director", avatarInitials: "JH", createdAt: stamped, updatedAt: stamped },
-    { id: "user_maya", organizationId: MEECHIE_ORG_ID, name: "Maya Okonkwo", email: "maya.okonkwo@example.com", role: "program_manager", title: "Program manager", avatarInitials: "MO", createdAt: stamped, updatedAt: stamped },
-    { id: "user_chris", organizationId: MEECHIE_ORG_ID, name: "Chris Delgado", email: "chris.delgado@example.com", role: "volunteer_coordinator", title: "Volunteer coordinator", avatarInitials: "CD", createdAt: stamped, updatedAt: stamped },
-    { id: "user_priya", organizationId: MEECHIE_ORG_ID, name: "Priya Shah", email: "priya.shah@example.com", role: "finance_manager", title: "Finance manager", avatarInitials: "PS", createdAt: stamped, updatedAt: stamped },
-    { id: "user_sam", organizationId: MEECHIE_ORG_ID, name: "Sam Rivera", email: "sam.rivera@example.com", role: "volunteer", title: "Volunteer", avatarInitials: "SR", volunteerId: "vol_meechie_001", createdAt: stamped, updatedAt: stamped },
-    { id: "user_elena", organizationId: MEECHIE_ORG_ID, name: "Elena Brooks", email: "elena.brooks@example.com", role: "sponsor", title: "Sponsor contact", avatarInitials: "EB", sponsorId: "spo_meechie_001", createdAt: stamped, updatedAt: stamped },
-    { id: "user_member", organizationId: MEECHIE_ORG_ID, name: "Rosa Santos", email: "rosa.santos@example.com", role: "community_member", title: "Community member", avatarInitials: "RS", createdAt: stamped, updatedAt: stamped },
+    { id: DEMO_ADMIN_USER_ID, organizationId: MEECHIE_ORG_ID, name: "Jordan Hale", email: "jordan.hale@example.com", role: "organization_admin", title: "Executive director", avatarInitials: "JH", accountStatus: "active", createdAt: stamped, updatedAt: stamped },
+    { id: "user_maya", organizationId: MEECHIE_ORG_ID, name: "Maya Okonkwo", email: "maya.okonkwo@example.com", role: "program_manager", title: "Program manager", avatarInitials: "MO", accountStatus: "active", createdAt: stamped, updatedAt: stamped },
+    { id: "user_chris", organizationId: MEECHIE_ORG_ID, name: "Chris Delgado", email: "chris.delgado@example.com", role: "volunteer_coordinator", title: "Volunteer coordinator", avatarInitials: "CD", accountStatus: "active", createdAt: stamped, updatedAt: stamped },
+    { id: "user_priya", organizationId: MEECHIE_ORG_ID, name: "Priya Shah", email: "priya.shah@example.com", role: "finance_manager", title: "Finance manager", avatarInitials: "PS", accountStatus: "active", createdAt: stamped, updatedAt: stamped },
+    { id: "user_sam", organizationId: MEECHIE_ORG_ID, name: "Sam Rivera", email: "sam.rivera@example.com", role: "volunteer", title: "Volunteer", avatarInitials: "SR", accountStatus: "active", volunteerId: "vol_meechie_001", createdAt: stamped, updatedAt: stamped },
+    { id: "user_elena", organizationId: MEECHIE_ORG_ID, name: "Elena Brooks", email: "elena.brooks@example.com", role: "sponsor", title: "Sponsor contact", avatarInitials: "EB", accountStatus: "active", sponsorId: "spo_meechie_001", createdAt: stamped, updatedAt: stamped },
+    { id: "user_member", organizationId: MEECHIE_ORG_ID, name: "Rosa Santos", email: "rosa.santos@example.com", role: "community_member", title: "Community member", avatarInitials: "RS", accountStatus: "active", createdAt: stamped, updatedAt: stamped },
   ];
 
   const programs = meechiePrograms();
