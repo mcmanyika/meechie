@@ -5,9 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
+  ChevronDown,
   LifeBuoy,
-  LogOut,
-  Menu,
   Moon,
   Search,
   Sun,
@@ -24,7 +23,6 @@ import { useDemoStore } from "@/stores/demo-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,43 +35,37 @@ import {
 import { LoadingBlock } from "@/components/shared/feedback";
 import { cn } from "cn";
 
+const PINNED_HREFS = new Set([
+  "/dashboard",
+  "/dashboard/community",
+  "/dashboard/events",
+  "/dashboard/donations",
+  "/dashboard/reports",
+]);
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const hydrated = useDemoStore((state) => state.hydrated);
-  const mobileNav = useDemoStore((state) => state.mobileNav);
-  const setMobileNav = useDemoStore((state) => state.setMobileNav);
   const { user } = useSession();
-  const [sidebarHovered, setSidebarHovered] = useState(false);
-  const sidebarExpanded = sidebarHovered;
+  const setSearchOpen = useDemoStore((state) => state.setSearchOpen);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [setSearchOpen]);
 
   if (!hydrated || !user) return <AuthGate />;
 
   return (
-    <div className="flex min-h-svh bg-background text-foreground">
-      <div className="hidden w-[76px] shrink-0 md:block" aria-hidden="true" />
-      <aside
-        data-app-chrome
-        onMouseEnter={() => setSidebarHovered(true)}
-        onMouseLeave={() => setSidebarHovered(false)}
-        className={cn(
-          "fixed inset-y-0 left-0 z-40 hidden h-svh flex-col bg-sidebar text-sidebar-foreground transition-[width,box-shadow] duration-200 ease-out md:flex",
-          sidebarExpanded ? "w-64 shadow-[8px_0_24px_rgba(0,0,0,0.18)]" : "w-[76px]",
-        )}
-      >
-        <SidebarBody collapsed={!sidebarExpanded} onNavigate={() => undefined} />
-      </aside>
-      <div className="flex min-h-svh min-w-0 flex-1 flex-col">
-        <TopBar onMenu={() => setMobileNav(true)} />
-        <main className="w-full flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
-      </div>
-      <Sheet open={mobileNav} onOpenChange={setMobileNav}>
-        <SheetContent side="left" className="h-full w-[280px] bg-sidebar p-0 text-sidebar-foreground sm:max-w-xs">
-          <SheetHeader className="sr-only">
-            <SheetTitle>Navigation</SheetTitle>
-          </SheetHeader>
-          <SidebarBody collapsed={false} onNavigate={() => setMobileNav(false)} />
-        </SheetContent>
-      </Sheet>
-      <SearchDialog />
+    <div className="flex min-h-svh flex-col bg-background text-foreground">
+      <TopBar />
+      <main className="w-full flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+      <CommandPalette />
       <HelpSheet />
     </div>
   );
@@ -96,104 +88,150 @@ function AuthGate() {
   return null;
 }
 
-function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate: () => void }) {
-  const pathname = usePathname();
-  const { organization, allowed, user } = useSession();
-  const setHelpOpen = useDemoStore((state) => state.setHelpOpen);
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className={cn("flex shrink-0 items-center gap-3 px-4 py-4", collapsed && "justify-center px-2")}>
-        <div className="grid size-9 place-items-center rounded-lg bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
-          {organization?.logoText ?? "MP"}
-        </div>
-        {collapsed ? null : (
-          <div className="min-w-0">
-            <p className="truncate font-heading text-sm font-semibold">{organization?.name ?? PRODUCT_NAME}</p>
-          </div>
-        )}
-      </div>
-      <nav className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 pb-4" aria-label="Primary">
-        {APP_NAV.map((group) => {
-          const items = group.items.filter((item) => user && hasPermission(user.role, item.permission) && allowed(item.permission));
-          if (items.length === 0) return null;
-          return (
-            <div key={group.label}>
-              {collapsed ? null : <p className="px-2 pb-1 text-[11px] font-medium tracking-wide text-sidebar-foreground/45 uppercase">{group.label}</p>}
-              <ul className="space-y-1">
-                {items.map((item) => (
-                  <li key={item.href}>
-                    <NavLink item={item} active={isActive(pathname, item.href)} collapsed={collapsed} onNavigate={onNavigate} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
-      </nav>
-      <div className="mt-auto shrink-0 space-y-1 border-t border-sidebar-border p-3">
-        <button type="button" onClick={() => setHelpOpen(true)} className={navClass(false, collapsed)}>
-          <LifeBuoy className="size-4 shrink-0" />
-          {collapsed ? <span className="sr-only">Help and support</span> : "Help and support"}
-        </button>
-        <ProfileRow collapsed={collapsed} />
-      </div>
-    </div>
-  );
+function useAllowedNav() {
+  const { user } = useSession();
+  return useMemo(() => {
+    if (!user) return [];
+    return APP_NAV.map((group) => ({
+      ...group,
+      items: group.items.filter((item) => hasPermission(user.role, item.permission)),
+    })).filter((group) => group.items.length > 0);
+  }, [user]);
 }
 
-function NavLink({ item, active, collapsed, onNavigate }: { item: NavItem; active: boolean; collapsed: boolean; onNavigate: () => void }) {
-  const link = (
-    <Link href={item.href} onClick={onNavigate} className={navClass(active, collapsed)} aria-current={active ? "page" : undefined}>
-      <item.icon className="size-4 shrink-0" />
-      {collapsed ? <span className="sr-only">{item.label}</span> : item.label}
-    </Link>
-  );
-  if (!collapsed) return link;
-  return (
-    <Tooltip>
-      <TooltipTrigger render={link} />
-      <TooltipContent side="right">{item.label}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-function ProfileRow({ collapsed }: { collapsed: boolean }) {
-  const user = useSession().user;
-  const exitDemo = useDemoStore((state) => state.exitDemo);
-  const router = useRouter();
-  if (!user) return null;
-  return (
-    <button
-      type="button"
-      className={navClass(false, collapsed)}
-      onClick={() => {
-        void signOutAuth().finally(() => {
-          exitDemo();
-          router.push("/");
-        });
-      }}
-    >
-      <span className="grid size-6 place-items-center rounded-full bg-sidebar-accent text-[10px]">{user.avatarInitials}</span>
-      {collapsed ? <span className="sr-only">Sign out</span> : <span className="min-w-0 truncate text-left">{user.name}</span>}
-      {collapsed ? null : <LogOut className="ml-auto size-3.5 opacity-70" />}
-    </button>
-  );
-}
-
-function TopBar({ onMenu }: { onMenu: () => void }) {
+function TopBar() {
   const pathname = usePathname();
   const { organization, user, db } = useSession();
   const setUser = useDemoStore((state) => state.setUser);
   const setSearch = useDemoStore((state) => state.setSearchOpen);
+  const setHelpOpen = useDemoStore((state) => state.setHelpOpen);
   const { theme, setTheme } = useTheme();
   const crumbs = useMemo(() => buildCrumbs(pathname, db, organization?.id ?? null), [pathname, db, organization?.id]);
-  const personas = db.users.filter((item) => item.organizationId === organization?.id || item.id === user?.id);
+  const personas = db.users.filter(
+    (item) =>
+      (item.organizationId === organization?.id || item.id === user?.id) &&
+      (item.accountStatus ?? "active") === "active",
+  );
+  const groups = useAllowedNav();
+  const pinned = useMemo(() => groups.flatMap((group) => group.items).filter((item) => PINNED_HREFS.has(item.href)), [groups]);
+  const moreGroups = useMemo(
+    () =>
+      groups
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => !PINNED_HREFS.has(item.href)),
+        }))
+        .filter((group) => group.items.length > 0),
+    [groups],
+  );
   return (
-    <header data-app-chrome className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/90 px-3 backdrop-blur sm:px-4">
-      <Button variant="ghost" size="icon" className="md:hidden" onClick={onMenu} aria-label="Open navigation">
-        <Menu />
-      </Button>
-      <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1 text-sm text-muted-foreground md:flex">
+    <header data-app-chrome className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
+      <div className="flex h-14 items-center gap-2 px-3 sm:px-4">
+        <Link href="/dashboard" className="flex shrink-0 items-center gap-2.5">
+          <span className="grid size-8 place-items-center rounded-lg bg-black text-[10px] font-semibold text-white">
+            {organization?.logoText ?? "MP"}
+          </span>
+          <span className="hidden font-heading text-sm font-semibold tracking-tight sm:inline">
+            {organization?.name ?? PRODUCT_NAME}
+          </span>
+        </Link>
+
+        <nav aria-label="Primary" className="ml-2 hidden items-center gap-0.5 lg:flex">
+          {pinned.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={isActive(pathname, item.href) ? "page" : undefined}
+              className={cn(
+                "rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                isActive(pathname, item.href) && "bg-muted font-medium text-foreground",
+              )}
+            >
+              {item.label}
+            </Link>
+          ))}
+          {moreGroups.length > 0 ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 text-muted-foreground"
+                    aria-label="More navigation"
+                  />
+                }
+              >
+                More
+                <ChevronDown className="size-3.5 opacity-70" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                {moreGroups.map((group, index) => (
+                  <DropdownMenuGroup key={group.label}>
+                    {index > 0 ? <DropdownMenuSeparator /> : null}
+                    <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
+                    {group.items.map((item) => (
+                      <DropdownMenuItem key={item.href} render={<Link href={item.href} />}>
+                        <item.icon className="size-4" />
+                        {item.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuGroup>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    setHelpOpen(true);
+                  }}
+                >
+                  <LifeBuoy className="size-4" />
+                  Help and support
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-1.5">
+          <Button
+            variant="outline"
+            className="hidden h-9 gap-2 px-3 text-muted-foreground sm:inline-flex"
+            onClick={() => setSearch(true)}
+          >
+            <Search className="size-4" />
+            <span>Search</span>
+            <kbd className="ml-1 rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">⌘K</kbd>
+          </Button>
+          <Button variant="ghost" size="icon" className="sm:hidden" aria-label="Search" onClick={() => setSearch(true)}>
+            <Search />
+          </Button>
+
+          <MobileNav moreGroups={moreGroups} pinned={pinned} />
+
+          <label className="hidden items-center gap-2 text-xs text-muted-foreground xl:flex">
+            Staff role
+            <select
+              aria-label="Staff role switcher"
+              className="h-8 max-w-48 rounded-lg border bg-card px-2 text-sm text-foreground"
+              value={user?.id ?? ""}
+              onChange={(event) => setUser(event.target.value)}
+            >
+              {personas.map((persona) => (
+                <option key={persona.id} value={persona.id}>
+                  {persona.name} · {ROLE_LABELS[persona.role]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Notifications />
+          <Button variant="ghost" size="icon" aria-label="Toggle color theme" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+            <Sun className="dark:hidden" />
+            <Moon className="hidden dark:block" />
+          </Button>
+          <UserMenu />
+        </div>
+      </div>
+      <nav aria-label="Breadcrumb" className="hidden border-t border-border/60 px-3 py-1.5 text-xs text-muted-foreground sm:flex sm:px-4">
         {crumbs.map((crumb, index) => (
           <span key={crumb.href} className="flex min-w-0 items-center gap-1">
             {index > 0 ? <span>/</span> : null}
@@ -203,37 +241,82 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
           </span>
         ))}
       </nav>
-      <div className="ml-auto flex items-center gap-1.5">
-        <Button variant="outline" className="hidden sm:inline-flex" onClick={() => setSearch(true)}>
-          <Search />
-          Search
-        </Button>
-        <Button variant="ghost" size="icon" className="sm:hidden" aria-label="Search" onClick={() => setSearch(true)}>
-          <Search />
-        </Button>
-        <label className="hidden items-center gap-2 text-xs text-muted-foreground xl:flex">
-          Staff role
-          <select
-            aria-label="Staff role switcher"
-            className="h-8 max-w-48 rounded-lg border bg-card px-2 text-sm text-foreground"
-            value={user?.id ?? ""}
-            onChange={(event) => setUser(event.target.value)}
-          >
-            {personas.map((persona) => (
-              <option key={persona.id} value={persona.id}>
-                {persona.name} · {ROLE_LABELS[persona.role]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Notifications />
-        <Button variant="ghost" size="icon" aria-label="Toggle color theme" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-          <Sun className="dark:hidden" />
-          <Moon className="hidden dark:block" />
-        </Button>
-        <UserMenu />
-      </div>
     </header>
+  );
+}
+
+function MobileNav({ pinned, moreGroups }: { pinned: NavItem[]; moreGroups: { label: string; items: NavItem[] }[] }) {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const setHelpOpen = useDemoStore((state) => state.setHelpOpen);
+  return (
+    <>
+      <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu">
+        Menu
+      </Button>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="right" className="w-[280px] sm:max-w-xs">
+          <SheetHeader>
+            <SheetTitle>Navigate</SheetTitle>
+          </SheetHeader>
+          <nav className="grid gap-5 px-4 pb-6" aria-label="Mobile">
+            <div>
+              <p className="pb-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Pinned</p>
+              <ul className="space-y-1">
+                {pinned.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-muted",
+                        isActive(pathname, item.href) && "bg-muted font-medium",
+                      )}
+                    >
+                      <item.icon className="size-4" />
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {moreGroups.map((group) => (
+              <div key={group.label}>
+                <p className="pb-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{group.label}</p>
+                <ul className="space-y-1">
+                  {group.items.map((item) => (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={() => setOpen(false)}
+                        className={cn(
+                          "flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-muted",
+                          isActive(pathname, item.href) && "bg-muted font-medium",
+                        )}
+                      >
+                        <item.icon className="size-4" />
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-muted"
+              onClick={() => {
+                setOpen(false);
+                setHelpOpen(true);
+              }}
+            >
+              <LifeBuoy className="size-4" />
+              Help and support
+            </button>
+          </nav>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 
@@ -314,52 +397,156 @@ function UserMenu() {
   );
 }
 
-function SearchDialog() {
+function CommandPalette() {
   const open = useDemoStore((state) => state.searchOpen);
   const setOpen = useDemoStore((state) => state.setSearchOpen);
   const { db, orgId } = useSession();
+  const router = useRouter();
   const [query, setQuery] = useState("");
-  const results = useMemo(() => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const groups = useAllowedNav();
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setActiveIndex(0);
+    }
+  }, [open]);
+
+  const navResults = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return groups
+      .flatMap((group) => group.items.map((item) => ({ ...item, group: group.label, kind: "Go to" as const })))
+      .filter((item) => !needle || item.label.toLowerCase().includes(needle) || item.group.toLowerCase().includes(needle));
+  }, [groups, query]);
+
+  const recordResults = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!orgId || needle.length < 2) return [];
     const members = db.members
       .filter((member) => member.organizationId === orgId && `${member.firstName} ${member.lastName} ${member.email ?? ""}`.toLowerCase().includes(needle))
       .slice(0, 5)
-      .map((member) => ({ href: `/dashboard/community/${member.id}`, label: `${member.firstName} ${member.lastName}`, kind: "Community" }));
+      .map((member) => ({ href: `/dashboard/community/${member.id}`, label: `${member.firstName} ${member.lastName}`, kind: "Community" as const, Icon: null as null }));
     const events = db.events
       .filter((event) => event.organizationId === orgId && event.name.toLowerCase().includes(needle))
       .slice(0, 4)
-      .map((event) => ({ href: `/dashboard/events/${event.id}`, label: event.name, kind: "Event" }));
+      .map((event) => ({ href: `/dashboard/events/${event.id}`, label: event.name, kind: "Event" as const, Icon: null as null }));
     const programs = db.programs
       .filter((program) => program.organizationId === orgId && program.name.toLowerCase().includes(needle))
       .slice(0, 3)
-      .map((program) => ({ href: `/dashboard/programs/${program.id}`, label: program.name, kind: "Program" }));
+      .map((program) => ({ href: `/dashboard/programs/${program.id}`, label: program.name, kind: "Program" as const, Icon: null as null }));
     const donors = db.donors
       .filter((donor) => donor.organizationId === orgId && donor.name.toLowerCase().includes(needle))
       .slice(0, 3)
-      .map((donor) => ({ href: "/dashboard/donors", label: donor.name, kind: "Donor" }));
+      .map((donor) => ({ href: "/dashboard/donors", label: donor.name, kind: "Donor" as const, Icon: null as null }));
     const volunteers = db.volunteers
       .filter((volunteer) => volunteer.organizationId === orgId && `${volunteer.firstName} ${volunteer.lastName}`.toLowerCase().includes(needle))
       .slice(0, 3)
-      .map((volunteer) => ({ href: `/dashboard/volunteers/${volunteer.id}`, label: `${volunteer.firstName} ${volunteer.lastName}`, kind: "Volunteer" }));
+      .map((volunteer) => ({
+        href: `/dashboard/volunteers/${volunteer.id}`,
+        label: `${volunteer.firstName} ${volunteer.lastName}`,
+        kind: "Volunteer" as const,
+        Icon: null as null,
+      }));
     return [...members, ...events, ...programs, ...donors, ...volunteers];
   }, [db, orgId, query]);
+
+  const results = useMemo(() => {
+    const nav = navResults.map((item) => ({
+      href: item.href,
+      label: item.label,
+      kind: item.kind,
+      Icon: item.icon,
+    }));
+    return [...nav, ...recordResults];
+  }, [navResults, recordResults]);
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [query, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+        return;
+      }
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActiveIndex((index) => Math.min(index + 1, Math.max(results.length - 1, 0)));
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActiveIndex((index) => Math.max(index - 1, 0));
+        return;
+      }
+      if (event.key === "Enter" && results[activeIndex]) {
+        event.preventDefault();
+        setOpen(false);
+        router.push(results[activeIndex].href);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, results, activeIndex, router, setOpen]);
+
   if (!open) return null;
+
   return (
-    <div className="fixed inset-0 z-50 grid place-items-start bg-black/30 px-4 pt-24" onClick={() => setOpen(false)}>
-      <div className="mx-auto w-full max-w-xl rounded-xl border bg-popover p-3 shadow-lg" onClick={(event) => event.stopPropagation()} role="dialog" aria-label="Global search">
-        <Input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search members, programs, events, donors, volunteers" aria-label="Search demo records" />
-        <ul className="mt-2 max-h-80 overflow-auto">
-          {results.map((result) => (
-            <li key={result.href + result.label}>
-              <Link href={result.href} onClick={() => setOpen(false)} className="flex items-center justify-between rounded-lg px-2 py-2 text-sm hover:bg-muted">
-                {result.label}
-                <span className="text-xs text-muted-foreground">{result.kind}</span>
-              </Link>
+    <div className="fixed inset-0 z-50 grid place-items-start bg-black/40 px-4 pt-[12vh] backdrop-blur-[2px]" onClick={() => setOpen(false)}>
+      <div
+        className="mx-auto w-full max-w-xl overflow-hidden rounded-2xl border bg-popover shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-label="Command palette"
+      >
+        <div className="flex items-center gap-2 border-b px-3">
+          <Search className="size-4 shrink-0 text-muted-foreground" />
+          <Input
+            autoFocus
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Go to a page or search records…"
+            aria-label="Command palette search"
+            className="h-12 border-0 bg-transparent shadow-none focus-visible:ring-0"
+          />
+          <kbd className="hidden rounded border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">esc</kbd>
+        </div>
+        <ul className="max-h-[min(60vh,24rem)] overflow-auto p-2">
+          {results.length === 0 ? (
+            <li className="px-3 py-8 text-center text-sm text-muted-foreground">
+              {query.trim().length >= 2 ? "No matches." : "Type to filter pages, or search people and programs."}
             </li>
-          ))}
-          {query.trim().length >= 2 && results.length === 0 ? <li className="px-2 py-6 text-sm text-muted-foreground">No matching demonstration records.</li> : null}
+          ) : (
+            results.map((result, index) => (
+              <li key={`${result.kind}-${result.href}-${result.label}`}>
+                <Link
+                  href={result.href}
+                  onClick={() => setOpen(false)}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  className={cn(
+                    "flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+                    index === activeIndex ? "bg-muted text-foreground" : "hover:bg-muted/70",
+                  )}
+                >
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    {result.Icon ? <result.Icon className="size-4 shrink-0 text-muted-foreground" /> : null}
+                    <span className="truncate">{result.label}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{result.kind}</span>
+                </Link>
+              </li>
+            ))
+          )}
         </ul>
+        <div className="flex items-center gap-3 border-t px-3 py-2 text-[11px] text-muted-foreground">
+          <span>↑↓ navigate</span>
+          <span>↵ open</span>
+          <span className="ml-auto">esc close</span>
+        </div>
       </div>
     </div>
   );
@@ -377,6 +564,10 @@ function HelpSheet() {
         </SheetHeader>
         <div className="grid gap-3 px-4 text-sm text-muted-foreground">
           <p>This is a local demonstration. Nothing is emailed, charged, or stored outside this browser.</p>
+          <p>
+            Press <kbd className="rounded border px-1 font-mono text-[10px]">⌘K</kbd> /{" "}
+            <kbd className="rounded border px-1 font-mono text-[10px]">Ctrl+K</kbd> anytime to jump pages or search records.
+          </p>
           <Button
             variant="outline"
             onClick={() => {
@@ -386,18 +577,9 @@ function HelpSheet() {
           >
             Reset demo data
           </Button>
-          <p>Production authentication, billing, and messaging are described in the README roadmap.</p>
         </div>
       </SheetContent>
     </Sheet>
-  );
-}
-
-function navClass(active: boolean, collapsed: boolean) {
-  return cn(
-    "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-    active && "bg-sidebar-accent text-sidebar-accent-foreground",
-    collapsed && "justify-center",
   );
 }
 
