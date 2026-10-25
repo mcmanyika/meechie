@@ -56,7 +56,7 @@
   --brand-yellow: #fdf279;
   --brand-pink: #ea8afd;
   --brand-sky: #73d0fc;
-  --background: #ffffff;
+  --background: #fafafa;
   --foreground: #000000;
   --card: #ffffff;
   --card-foreground: #000000;
@@ -64,15 +64,15 @@
   --popover-foreground: #000000;
   --primary: #1db954;
   --primary-foreground: #ffffff;
-  --secondary: #fdf279;
+  --secondary: #f5f5f5;
   --secondary-foreground: #000000;
-  --muted: #f7f7f7;
+  --muted: #f4f4f4;
   --muted-foreground: #555555;
   --accent: #066cf4;
   --accent-foreground: #ffffff;
   --destructive: #b42318;
-  --border: #cccccc;
-  --input: #cccccc;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
   --ring: #1db954;
   --chart-1: #1db954;
   --chart-2: #066cf4;
@@ -88,28 +88,29 @@
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #333333;
   --sidebar-ring: #7bf9aa;
-  --mood-glow-a: rgba(29, 185, 84, 0.18);
-  --mood-glow-b: rgba(253, 242, 121, 0.22);
+  --mood-glow-a: rgba(0, 0, 0, 0.03);
+  --mood-glow-b: rgba(0, 0, 0, 0.02);
+  --card-wash: none;
 }
 
 .dark {
   --background: #0a0a0a;
   --foreground: #ffffff;
-  --card: #141414;
+  --card: #161616;
   --card-foreground: #ffffff;
-  --popover: #141414;
+  --popover: #161616;
   --popover-foreground: #ffffff;
   --primary: #1db954;
   --primary-foreground: #ffffff;
-  --secondary: #fdf279;
-  --secondary-foreground: #000000;
+  --secondary: #222222;
+  --secondary-foreground: #ffffff;
   --muted: #1f1f1f;
   --muted-foreground: #a3a3a3;
   --accent: #066cf4;
   --accent-foreground: #ffffff;
   --destructive: #f97066;
-  --border: #333333;
-  --input: #333333;
+  --border: #2e2e2e;
+  --input: #2e2e2e;
   --ring: #7bf9aa;
   --chart-1: #1db954;
   --chart-2: #73d0fc;
@@ -124,23 +125,55 @@
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #333333;
   --sidebar-ring: #7bf9aa;
-  --mood-glow-a: rgba(29, 185, 84, 0.16);
-  --mood-glow-b: rgba(6, 108, 244, 0.12);
+  --mood-glow-a: rgba(255, 255, 255, 0.04);
+  --mood-glow-b: rgba(255, 255, 255, 0.02);
+  --card-wash: none;
 }
 
-/* Moods layer on brand tokens; Joy is the default :root / .dark pack */
+/* Moods layer on brand tokens; Joy is the default whitish pack */
 :root,
 [data-mood="joy"] {
-  --mood-glow-a: rgba(29, 185, 84, 0.18);
-  --mood-glow-b: rgba(253, 242, 121, 0.22);
+  --background: #fafafa;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #000000;
+  --muted: #f4f4f4;
+  --muted-foreground: #555555;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --mood-glow-a: rgba(0, 0, 0, 0.03);
+  --mood-glow-b: rgba(0, 0, 0, 0.02);
+  --card-wash: none;
+}
+
+.dark[data-mood="joy"] {
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --card: #161616;
+  --card-foreground: #ffffff;
+  --popover: #161616;
+  --popover-foreground: #ffffff;
+  --secondary: #222222;
+  --secondary-foreground: #ffffff;
+  --muted: #1f1f1f;
+  --muted-foreground: #a3a3a3;
+  --border: #2e2e2e;
+  --input: #2e2e2e;
+  --mood-glow-a: rgba(255, 255, 255, 0.04);
+  --mood-glow-b: rgba(255, 255, 255, 0.02);
+  --card-wash: none;
 }
 
 [data-mood="play"] {
   --background: #f4fffa;
   --foreground: #06261a;
-  --card: #ffffff;
+  --card: #d9ffe9;
   --card-foreground: #06261a;
-  --popover: #ffffff;
+  --popover: #ecfff5;
   --popover-foreground: #06261a;
   --primary: #12c48b;
   --primary-foreground: #06261a;
@@ -150,8 +183,8 @@
   --muted-foreground: #3d6b5a;
   --accent: #7bf9aa;
   --accent-foreground: #06261a;
-  --border: #b7ebc9;
-  --input: #b7ebc9;
+  --border: #8fddb0;
+  --input: #8fddb0;
   --ring: #12c48b;
   --chart-1: #12c48b;
   --chart-2: #73d0fc;
@@ -161,12 +194,13 @@
   --radius: 1rem;
   --mood-glow-a: rgba(123, 249, 170, 0.35);
   --mood-glow-b: rgba(115, 208, 252, 0.28);
+  --card-wash: linear-gradient(160deg, rgba(123, 249, 170, 0.45), rgba(115, 208, 252, 0.28) 60%, transparent 85%);
 }
 
 .dark[data-mood="play"] {
   --background: #061510;
   --foreground: #eafff5;
-  --card: #0d241c;
+  --card: #12382a;
   --card-foreground: #eafff5;
   --popover: #0d241c;
   --popover-foreground: #eafff5;
@@ -183,14 +217,15 @@
   --ring: #7bf9aa;
   --mood-glow-a: rgba(123, 249, 170, 0.18);
   --mood-glow-b: rgba(115, 208, 252, 0.14);
+  --card-wash: linear-gradient(160deg, rgba(123, 249, 170, 0.22), rgba(115, 208, 252, 0.12) 55%, transparent 80%);
 }
 
 [data-mood="hype"] {
   --background: #f7f4ff;
   --foreground: #120816;
-  --card: #ffffff;
+  --card: #f0e0ff;
   --card-foreground: #120816;
-  --popover: #ffffff;
+  --popover: #f8f0ff;
   --popover-foreground: #120816;
   --primary: #ea8afd;
   --primary-foreground: #120816;
@@ -200,8 +235,8 @@
   --muted-foreground: #5a4a6a;
   --accent: #1db954;
   --accent-foreground: #ffffff;
-  --border: #d8c4f0;
-  --input: #d8c4f0;
+  --border: #d0a8f0;
+  --input: #d0a8f0;
   --ring: #ea8afd;
   --chart-1: #ea8afd;
   --chart-2: #1db954;
@@ -211,12 +246,13 @@
   --radius: 0.65rem;
   --mood-glow-a: rgba(234, 138, 253, 0.28);
   --mood-glow-b: rgba(29, 185, 84, 0.2);
+  --card-wash: linear-gradient(160deg, rgba(234, 138, 253, 0.4), rgba(29, 185, 84, 0.16) 55%, transparent 85%);
 }
 
 .dark[data-mood="hype"] {
   --background: #09060d;
   --foreground: #f8f0ff;
-  --card: #140f1c;
+  --card: #261536;
   --card-foreground: #f8f0ff;
   --popover: #140f1c;
   --popover-foreground: #f8f0ff;
@@ -233,14 +269,15 @@
   --ring: #ea8afd;
   --mood-glow-a: rgba(234, 138, 253, 0.22);
   --mood-glow-b: rgba(29, 185, 84, 0.16);
+  --card-wash: linear-gradient(160deg, rgba(234, 138, 253, 0.28), rgba(29, 185, 84, 0.12) 55%, transparent 80%);
 }
 
 [data-mood="calm"] {
   --background: #f5fbff;
   --foreground: #0b1f2e;
-  --card: #ffffff;
+  --card: #d9f0fb;
   --card-foreground: #0b1f2e;
-  --popover: #ffffff;
+  --popover: #eef8fd;
   --popover-foreground: #0b1f2e;
   --primary: #3aa7e0;
   --primary-foreground: #ffffff;
@@ -250,8 +287,8 @@
   --muted-foreground: #4f6d80;
   --accent: #7bf9aa;
   --accent-foreground: #0b1f2e;
-  --border: #c5e0ef;
-  --input: #c5e0ef;
+  --border: #9ecfe6;
+  --input: #9ecfe6;
   --ring: #3aa7e0;
   --chart-1: #3aa7e0;
   --chart-2: #73d0fc;
@@ -261,12 +298,13 @@
   --radius: 0.9rem;
   --mood-glow-a: rgba(115, 208, 252, 0.28);
   --mood-glow-b: rgba(123, 249, 170, 0.16);
+  --card-wash: linear-gradient(160deg, rgba(115, 208, 252, 0.4), rgba(123, 249, 170, 0.18) 55%, transparent 85%);
 }
 
 .dark[data-mood="calm"] {
   --background: #071018;
   --foreground: #e8f5ff;
-  --card: #0e1a24;
+  --card: #123244;
   --card-foreground: #e8f5ff;
   --popover: #0e1a24;
   --popover-foreground: #e8f5ff;
@@ -283,14 +321,15 @@
   --ring: #73d0fc;
   --mood-glow-a: rgba(115, 208, 252, 0.14);
   --mood-glow-b: rgba(58, 167, 224, 0.12);
+  --card-wash: linear-gradient(160deg, rgba(115, 208, 252, 0.2), rgba(58, 167, 224, 0.12) 55%, transparent 80%);
 }
 
 [data-mood="sunshine"] {
   --background: #fffcef;
   --foreground: #1a1608;
-  --card: #ffffff;
+  --card: #fff1a8;
   --card-foreground: #1a1608;
-  --popover: #ffffff;
+  --popover: #fff8d0;
   --popover-foreground: #1a1608;
   --primary: #066cf4;
   --primary-foreground: #ffffff;
@@ -300,8 +339,8 @@
   --muted-foreground: #6b6230;
   --accent: #1db954;
   --accent-foreground: #ffffff;
-  --border: #e8d98a;
-  --input: #e8d98a;
+  --border: #e0c85a;
+  --input: #e0c85a;
   --ring: #066cf4;
   --chart-1: #fdf279;
   --chart-2: #066cf4;
@@ -311,12 +350,13 @@
   --radius: 0.85rem;
   --mood-glow-a: rgba(253, 242, 121, 0.45);
   --mood-glow-b: rgba(6, 108, 244, 0.16);
+  --card-wash: linear-gradient(160deg, rgba(253, 242, 121, 0.65), rgba(6, 108, 244, 0.12) 60%, transparent 85%);
 }
 
 .dark[data-mood="sunshine"] {
   --background: #141008;
   --foreground: #fff8d9;
-  --card: #1f1a0d;
+  --card: #3a3012;
   --card-foreground: #fff8d9;
   --popover: #1f1a0d;
   --popover-foreground: #fff8d9;
@@ -333,6 +373,7 @@
   --ring: #fdf279;
   --mood-glow-a: rgba(253, 242, 121, 0.16);
   --mood-glow-b: rgba(6, 108, 244, 0.14);
+  --card-wash: linear-gradient(160deg, rgba(253, 242, 121, 0.22), rgba(6, 108, 244, 0.1) 55%, transparent 80%);
 }
 
 @media print {

@@ -4,8 +4,8 @@ export const MOODS = [
   {
     id: "joy",
     label: "Joy",
-    blurb: "Classic Meechie green and sunshine accents",
-    swatch: "#1db954",
+    blurb: "Clean whitish surfaces with brand green accents",
+    swatch: "#ffffff",
   },
   {
     id: "play",

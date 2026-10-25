@@ -95,7 +95,11 @@ export function ExecutiveDashboard() {
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map(([label, value, hint]) => (
-          <article key={label} className="rounded-xl border bg-card px-4 py-3">
+          <article
+            key={label}
+            className="rounded-xl border bg-card px-4 py-3"
+            style={{ backgroundImage: "var(--card-wash)" }}
+          >
             <p className="text-xs text-muted-foreground">{label}</p>
             <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
             <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
