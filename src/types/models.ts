@@ -52,6 +52,8 @@ export type TemplateKind =
   | "donation_thanks"
   | "sponsor_ack"
   | "community_announcement";
+export type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
+export type TaskPriority = "low" | "medium" | "high";
 
 export interface Organization {
   id: string;
@@ -474,6 +476,21 @@ export interface AuditEvent {
   createdAt: string;
 }
 
+export interface StaffTask {
+  id: string;
+  organizationId: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assigneeUserId: string;
+  createdByUserId: string;
+  programId: string | null;
+  dueDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DemoDatabase {
   version: 1;
   seededAt: string;
@@ -505,6 +522,7 @@ export interface DemoDatabase {
   volunteerInterests: VolunteerInterest[];
   notes: MemberNote[];
   reports: ImpactReport[];
+  tasks: StaffTask[];
   audit: AuditEvent[];
 }
 

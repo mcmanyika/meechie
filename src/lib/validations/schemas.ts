@@ -251,6 +251,16 @@ export const orgSettingsSchema = z.object({
   portalWelcome: z.string().trim().min(10),
 });
 
+export const staffTaskSchema = z.object({
+  title: z.string().trim().min(2, "Title is required.").max(120),
+  description: z.string().trim().max(2000),
+  status: z.enum(["todo", "in_progress", "blocked", "done"]),
+  priority: z.enum(["low", "medium", "high"]),
+  assigneeUserId: z.string().min(1, "Choose an assignee."),
+  programId: z.string(),
+  dueDate: z.string(),
+});
+
 export type MemberFormValues = z.infer<typeof memberSchema>;
 export type ProgramFormValues = z.infer<typeof programSchema>;
 export type EventFormValues = z.infer<typeof eventSchema>;
@@ -260,3 +270,4 @@ export type SponsorFormValues = z.infer<typeof sponsorSchema>;
 export type DonorFormValues = z.infer<typeof donorSchema>;
 export type InventoryFormValues = z.infer<typeof inventorySchema>;
 export type MovementFormValues = z.infer<typeof movementSchema>;
+export type StaffTaskFormValues = z.infer<typeof staffTaskSchema>;

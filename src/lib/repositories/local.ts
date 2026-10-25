@@ -13,7 +13,8 @@ function migrate(database: DemoDatabase): DemoDatabase {
       : ({ ...user, accountStatus: "active" } satisfies User),
   );
   const needsUsers = users.some((user, index) => user !== database.users[index]);
-  if (!needsButtons && !needsDonations && !needsUsers) return database;
+  const needsTasks = !Array.isArray(database.tasks);
+  if (!needsButtons && !needsDonations && !needsUsers && !needsTasks) return database;
   const now = new Date().toISOString();
   const seededButton: DonateButton = {
     id: "btn_meechie_website",
@@ -27,11 +28,13 @@ function migrate(database: DemoDatabase): DemoDatabase {
     createdAt: now,
     updatedAt: now,
   };
+  const seededTasks = needsTasks ? createSeedDatabase().tasks : database.tasks;
   return {
     ...database,
     users,
     donateButtons: needsButtons ? [seededButton] : database.donateButtons,
     donations,
+    tasks: seededTasks,
   };
 }
 

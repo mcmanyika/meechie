@@ -41,6 +41,7 @@ import type {
   PlanId,
   Program,
   Sponsor,
+  StaffTask,
   User,
   Volunteer,
   VolunteerInterest,
@@ -71,6 +72,9 @@ interface DemoStore {
   saveMember: (member: CommunityMember, mode: "create" | "update") => Result<CommunityMember>;
   saveHousehold: (household: Household, mode: "create" | "update") => Result<Household>;
   saveProgram: (program: Program, mode: "create" | "update") => Result<Program>;
+  saveTask: (task: StaffTask, mode: "create" | "update") => Result<StaffTask>;
+  setTaskStatus: (taskId: string, status: StaffTask["status"]) => Result<StaffTask>;
+  deleteTask: (taskId: string) => Result<true>;
   saveEvent: (event: OrgEvent, mode: "create" | "update") => Result<OrgEvent>;
   setEventStatus: (eventId: string, status: OrgEvent["status"]) => Result<OrgEvent>;
   openRegistration: (eventId: string) => Result<true>;
@@ -334,6 +338,82 @@ export const useDemoStore = create<DemoStore>((set, get) => {
         ),
       );
       return { ok: true, data: next };
+    },
+
+    saveTask: (task, mode) => {
+      const who = actor("tasks.manage");
+      if (!who.ok) return who;
+      const assignee = get().db.users.find((item) => item.id === task.assigneeUserId);
+      if (!assignee || (assignee.accountStatus ?? "active") !== "active") {
+        return fail("Choose an active staff account as the assignee.");
+      }
+      if (task.programId) {
+        const program = get().db.programs.find((item) => item.id === task.programId && item.organizationId === who.data.orgId);
+        if (!program) return fail("Linked program was not found.");
+      }
+      const now = new Date().toISOString();
+      const next: StaffTask = {
+        ...task,
+        organizationId: who.data.orgId,
+        title: task.title.trim(),
+        description: task.description.trim(),
+        programId: task.programId || null,
+        dueDate: task.dueDate || null,
+        updatedAt: now,
+      };
+      if (!next.title) return fail("Title is required.");
+      commit(
+        appendAudit(
+          { ...get().db, tasks: replace(get().db.tasks, next, mode) },
+          who.data.orgId,
+          who.data.name,
+          mode === "create" ? "task.created" : "task.updated",
+          "task",
+          next.id,
+          next.title,
+        ),
+      );
+      return { ok: true, data: next };
+    },
+
+    setTaskStatus: (taskId, status) => {
+      const who = actor("tasks.manage");
+      if (!who.ok) return who;
+      const existing = get().db.tasks.find((item) => item.id === taskId && item.organizationId === who.data.orgId);
+      if (!existing) return fail("Task not found.");
+      const now = new Date().toISOString();
+      const next: StaffTask = { ...existing, status, updatedAt: now };
+      commit(
+        appendAudit(
+          { ...get().db, tasks: get().db.tasks.map((item) => (item.id === taskId ? next : item)) },
+          who.data.orgId,
+          who.data.name,
+          "task.status",
+          "task",
+          next.id,
+          `${next.title} marked ${status.replaceAll("_", " ")}.`,
+        ),
+      );
+      return { ok: true, data: next };
+    },
+
+    deleteTask: (taskId) => {
+      const who = actor("tasks.manage");
+      if (!who.ok) return who;
+      const existing = get().db.tasks.find((item) => item.id === taskId && item.organizationId === who.data.orgId);
+      if (!existing) return fail("Task not found.");
+      commit(
+        appendAudit(
+          { ...get().db, tasks: get().db.tasks.filter((item) => item.id !== taskId) },
+          who.data.orgId,
+          who.data.name,
+          "task.deleted",
+          "task",
+          existing.id,
+          existing.title,
+        ),
+      );
+      return { ok: true, data: true };
     },
 
     saveEvent: (event, mode) => {

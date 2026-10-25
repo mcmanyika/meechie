@@ -2,6 +2,7 @@ import {
   Boxes,
   Building2,
   CalendarDays,
+  CheckSquare,
   HandCoins,
   HeartHandshake,
   LayoutDashboard,
@@ -53,6 +54,7 @@ export const APP_NAV: NavGroup[] = [
   {
     label: "Operations",
     items: [
+      { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare, permission: "tasks.view" },
       { href: "/dashboard/inventory", label: "Inventory", icon: Boxes, permission: "inventory.view", entitlement: "inventory" },
       { href: "/dashboard/communications", label: "Communications", icon: Megaphone, permission: "communications.view", entitlement: "communications" },
       { href: "/dashboard/reports", label: "Impact Reports", icon: PieChart, permission: "reports.view", entitlement: "reports" },

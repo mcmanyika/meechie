@@ -7,10 +7,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/shared/feedback";
 import { Panel } from "@/components/shared/panel";
-import { StatusBadge } from "@/components/shared/status-badge";
 import { useOrgRows, useSession } from "@/hooks/use-org";
-import { executiveSnapshot, monthBuckets, stockOnHand } from "@/lib/domain/metrics";
-import { formatDateTime, formatMoney, formatNumber } from "@/lib/format";
+import { executiveSnapshot, monthBuckets } from "@/lib/domain/metrics";
+import { formatMoney, formatNumber } from "@/lib/format";
 import { cn } from "cn";
 
 export function ExecutiveDashboard() {
@@ -20,8 +19,6 @@ export function ExecutiveDashboard() {
   const programs = useOrgRows("programs");
   const volunteers = useOrgRows("volunteers");
   const serviceLogs = useOrgRows("serviceLogs");
-  const registrations = useOrgRows("registrations");
-  const announcements = useOrgRows("announcements");
   const expenses = useOrgRows("expenses");
   const attendance = useOrgRows("attendance");
   const members = useOrgRows("members");
@@ -58,14 +55,6 @@ export function ExecutiveDashboard() {
     name: type.replaceAll("_", " "),
     value: donations.filter((donation) => donation.type === type && donation.status === "completed").reduce((sum, donation) => sum + donation.amountCents, 0),
   }));
-  const upcoming = events
-    .filter((event) => new Date(event.startAt) > new Date() && event.status !== "cancelled" && event.status !== "draft")
-    .sort((a, b) => a.startAt.localeCompare(b.startAt))
-    .slice(0, 4);
-  const recentGifts = [...donations].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
-  const recentRegs = [...registrations].sort((a, b) => b.registeredAt.localeCompare(a.registeredAt)).slice(0, 5);
-  const recentHours = [...serviceLogs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
-  const lowStock = db.inventoryItems.filter((item) => item.organizationId === orgId && stockOnHand(db, item.id) <= item.reorderThreshold).length;
 
   const cards = [
     ["Total donations", formatMoney(snapshot.donationsCents, organization.currency), "Completed gifts"],
@@ -193,86 +182,6 @@ export function ExecutiveDashboard() {
                 </li>
               );
             })}
-          </ul>
-        </Panel>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Upcoming events" action={<Link href="/dashboard/events" className="text-xs text-primary">View all</Link>}>
-          <ul className="space-y-3">
-            {upcoming.length === 0 ? <li className="text-sm text-muted-foreground">No upcoming published events.</li> : null}
-            {upcoming.map((event) => (
-              <li key={event.id} className="flex items-start justify-between gap-3">
-                <div>
-                  <Link href={`/dashboard/events/${event.id}`} className="text-sm font-medium hover:underline">
-                    {event.name}
-                  </Link>
-                  <p className="text-xs text-muted-foreground">{formatDateTime(event.startAt)}</p>
-                </div>
-                <StatusBadge value={event.status} />
-              </li>
-            ))}
-          </ul>
-        </Panel>
-        <Panel title="Recent donations" action={<Link href="/dashboard/donations" className="text-xs text-primary">Ledger</Link>}>
-          <ul className="space-y-3">
-            {recentGifts.map((gift) => {
-              const donor = db.donors.find((item) => item.id === gift.donorId);
-              return (
-                <li key={gift.id} className="flex items-center justify-between gap-3 text-sm">
-                  <span>{donor?.name ?? "Donor"}</span>
-                  <span className="text-muted-foreground">{formatMoney(gift.amountCents, organization.currency)}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </Panel>
-        <Panel title="Recent registrations">
-          <ul className="space-y-3">
-            {recentRegs.map((registration) => {
-              const member = members.find((item) => item.id === registration.memberId);
-              const event = events.find((item) => item.id === registration.eventId);
-              return (
-                <li key={registration.id} className="text-sm">
-                  <span className="font-medium">{member ? `${member.firstName} ${member.lastName}` : "Member"}</span>
-                  <span className="text-muted-foreground"> · {event?.name}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </Panel>
-        <Panel title="Volunteer activity">
-          <ul className="space-y-3">
-            {recentHours.map((log) => {
-              const volunteer = volunteers.find((item) => item.id === log.volunteerId);
-              return (
-                <li key={log.id} className="flex justify-between text-sm">
-                  <span>{volunteer ? `${volunteer.firstName} ${volunteer.lastName}` : "Volunteer"}</span>
-                  <span className="text-muted-foreground">{log.hours} hrs</span>
-                </li>
-              );
-            })}
-          </ul>
-        </Panel>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Program progress">
-          <ul className="space-y-2">
-            {programs.map((program) => (
-              <li key={program.id} className="flex items-center justify-between gap-3 text-sm">
-                <span>{program.name}</span>
-                <StatusBadge value={program.status} />
-              </li>
-            ))}
-          </ul>
-        </Panel>
-        <Panel title="Announcements" action={<span className="text-xs text-muted-foreground">{lowStock} low-stock items</span>}>
-          <ul className="space-y-3">
-            {announcements.map((announcement) => (
-              <li key={announcement.id}>
-                <p className="text-sm font-medium">{announcement.title}</p>
-                <p className="text-sm text-muted-foreground">{announcement.body}</p>
-              </li>
-            ))}
           </ul>
         </Panel>
       </div>

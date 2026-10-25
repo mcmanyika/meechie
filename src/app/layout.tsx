@@ -3,6 +3,7 @@ import { DM_Sans, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { Providers } from "@/components/providers";
 import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/config/constants";
+import { DEFAULT_MOOD, MOOD_STORAGE_KEY } from "@/config/moods";
 import "./globals.css";
 
 const happiness = localFont({
@@ -31,9 +32,19 @@ export const metadata: Metadata = {
   description: "The Meechie Project staff and community tools for programs, events, volunteers, fundraising, and impact reporting in Dallas.",
 };
 
+const moodBootScript = `(function(){try{var k=${JSON.stringify(MOOD_STORAGE_KEY)};var m=localStorage.getItem(k);if(m)document.documentElement.setAttribute("data-mood",m);else document.documentElement.setAttribute("data-mood",${JSON.stringify(DEFAULT_MOOD)});}catch(e){document.documentElement.setAttribute("data-mood",${JSON.stringify(DEFAULT_MOOD)});}})();`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${happiness.variable} ${geistMono.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      data-mood={DEFAULT_MOOD}
+      className={`${dmSans.variable} ${happiness.variable} ${geistMono.variable}`}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: moodBootScript }} />
+      </head>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>

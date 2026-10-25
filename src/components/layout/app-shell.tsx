@@ -33,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LoadingBlock } from "@/components/shared/feedback";
+import { MoodSwitcher } from "@/components/theme/mood-switcher";
 import { cn } from "cn";
 
 const PINNED_HREFS = new Set([
@@ -224,6 +225,7 @@ function TopBar() {
             </select>
           </label>
           <Notifications />
+          <MoodSwitcher />
           <Button variant="ghost" size="icon" aria-label="Toggle color theme" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
             <Sun className="dark:hidden" />
             <Moon className="hidden dark:block" />
@@ -603,6 +605,7 @@ function buildCrumbs(pathname: string, db: ReturnType<typeof useSession>["db"], 
     inventory: "Inventory",
     communications: "Communications",
     reports: "Impact Reports",
+    tasks: "Tasks",
     settings: "Settings",
     organizations: "Organizations",
     subscriptions: "Subscriptions",

@@ -22,6 +22,13 @@ const tone: Record<string, string> = {
   checked_in: "bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-200",
   verified: "bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-200",
   new: "bg-sky-50 text-sky-800 dark:bg-sky-950 dark:text-sky-200",
+  todo: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+  in_progress: "bg-sky-50 text-sky-800 dark:bg-sky-950 dark:text-sky-200",
+  blocked: "bg-rose-50 text-rose-800 dark:bg-rose-950 dark:text-rose-200",
+  done: "bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-200",
+  high: "bg-rose-50 text-rose-800 dark:bg-rose-950 dark:text-rose-200",
+  medium: "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
+  low: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
 };
 
 export function StatusBadge({ value }: { value: string }) {
