@@ -10,7 +10,7 @@ import { LoadingBlock } from "@/components/shared/feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DEMO_ADMIN_USER_ID, STAFF_ROLES } from "@/config/constants";
+import { STAFF_ROLES } from "@/config/constants";
 import { isAuthConfigured, signInWithPassword } from "@/lib/firebase/auth";
 import { loginSchema, type LoginFormValues } from "@/lib/validations/schemas";
 import { useDemoStore } from "@/stores/demo-store";
@@ -26,7 +26,6 @@ function destinationForAccount(role: Role, accountStatus: AccountStatus) {
 export function LoginForm() {
   const hydrated = useDemoStore((state) => state.hydrated);
   const enterByEmail = useDemoStore((state) => state.enterByEmail);
-  const enterDemo = useDemoStore((state) => state.enterDemo);
   const router = useRouter();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -52,17 +51,6 @@ export function LoginForm() {
           <Link href="/register" className="font-medium text-primary underline-offset-4 hover:underline">
             Create one
           </Link>
-          {" · "}
-          <button
-            type="button"
-            className="font-medium text-primary underline-offset-4 hover:underline"
-            onClick={() => {
-              enterDemo(DEMO_ADMIN_USER_ID);
-              router.push("/dashboard");
-            }}
-          >
-            Explore the demo
-          </button>
         </>
       }
     >

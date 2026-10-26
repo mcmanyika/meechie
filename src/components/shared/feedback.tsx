@@ -26,7 +26,7 @@ export function EmptyState({ title, body, action }: { title: string; body: strin
 
 export function AccessDenied({
   title = "You do not have access to this page",
-  body = "Switch the staff role in the header if you are previewing another role, or sign in with a staff account.",
+  body = "Sign in with a staff account that has permission for this page.",
 }: {
   title?: string;
   body?: string;

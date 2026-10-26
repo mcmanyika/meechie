@@ -54,6 +54,8 @@ export type TemplateKind =
   | "community_announcement";
 export type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
 export type TaskPriority = "low" | "medium" | "high";
+export type OutreachType = "canvass" | "neighborhood_visit" | "flyering" | "partnership" | "other";
+export type OutreachStatus = "planned" | "completed" | "cancelled";
 
 export interface Organization {
   id: string;
@@ -306,7 +308,8 @@ export interface DonateButton {
   /** Preset dollar amounts shown on the public give page. Empty = custom only. */
   amounts: number[];
   defaultAmount: number;
-  programId: string | null;
+  /** Programs this button may fund. Empty = unrestricted ("where need is greatest"). */
+  programIds: string[];
   type: "one_time" | "recurring";
   active: boolean;
   createdAt: string;
@@ -491,6 +494,25 @@ export interface StaffTask {
   updatedAt: string;
 }
 
+export interface OutreachActivity {
+  id: string;
+  organizationId: string;
+  title: string;
+  type: OutreachType;
+  status: OutreachStatus;
+  date: string;
+  neighborhood: string;
+  city: string;
+  programId: string | null;
+  leadUserId: string;
+  volunteerIds: string[];
+  householdsReached: number;
+  individualsReached: number;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DemoDatabase {
   version: 1;
   seededAt: string;
@@ -523,6 +545,7 @@ export interface DemoDatabase {
   notes: MemberNote[];
   reports: ImpactReport[];
   tasks: StaffTask[];
+  outreachActivities: OutreachActivity[];
   audit: AuditEvent[];
 }
 
@@ -530,4 +553,6 @@ export interface SessionState {
   userId: string | null;
   orgId: string | null;
   sidebarCollapsed: boolean;
+  /** Notification keys the user has opened in the header bell. */
+  seenNotificationIds: string[];
 }

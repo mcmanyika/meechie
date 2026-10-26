@@ -40,7 +40,7 @@ const PINNED_HREFS = new Set([
   "/dashboard",
   "/dashboard/community",
   "/dashboard/events",
-  "/dashboard/donations",
+  "/dashboard/fundraising",
   "/dashboard/reports",
 ]);
 
@@ -102,17 +102,11 @@ function useAllowedNav() {
 
 function TopBar() {
   const pathname = usePathname();
-  const { organization, user, db } = useSession();
-  const setUser = useDemoStore((state) => state.setUser);
+  const { organization, db } = useSession();
   const setSearch = useDemoStore((state) => state.setSearchOpen);
   const setHelpOpen = useDemoStore((state) => state.setHelpOpen);
   const { theme, setTheme } = useTheme();
   const crumbs = useMemo(() => buildCrumbs(pathname, db, organization?.id ?? null), [pathname, db, organization?.id]);
-  const personas = db.users.filter(
-    (item) =>
-      (item.organizationId === organization?.id || item.id === user?.id) &&
-      (item.accountStatus ?? "active") === "active",
-  );
   const groups = useAllowedNav();
   const pinned = useMemo(() => groups.flatMap((group) => group.items).filter((item) => PINNED_HREFS.has(item.href)), [groups]);
   const moreGroups = useMemo(
@@ -209,21 +203,6 @@ function TopBar() {
 
           <MobileNav moreGroups={moreGroups} pinned={pinned} />
 
-          <label className="hidden items-center gap-2 text-xs text-muted-foreground xl:flex">
-            Staff role
-            <select
-              aria-label="Staff role switcher"
-              className="h-8 max-w-48 rounded-lg border bg-card px-2 text-sm text-foreground"
-              value={user?.id ?? ""}
-              onChange={(event) => setUser(event.target.value)}
-            >
-              {personas.map((persona) => (
-                <option key={persona.id} value={persona.id}>
-                  {persona.name} · {ROLE_LABELS[persona.role]}
-                </option>
-              ))}
-            </select>
-          </label>
           <Notifications />
           <MoodSwitcher />
           <Button variant="ghost" size="icon" aria-label="Toggle color theme" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
@@ -324,40 +303,77 @@ function MobileNav({ pinned, moreGroups }: { pinned: NavItem[]; moreGroups: { la
 
 function Notifications() {
   const { db, orgId } = useSession();
+  const seenNotificationIds = useDemoStore((state) => state.seenNotificationIds);
+  const markNotificationsSeen = useDemoStore((state) => state.markNotificationsSeen);
   const items = useMemo(() => {
     if (!orgId) return [];
     const low = db.inventoryItems
       .filter((item) => item.organizationId === orgId && stockOnHand(db, item.id) <= item.reorderThreshold)
       .slice(0, 3)
-      .map((item) => ({ id: item.id, title: `${item.name} is low`, detail: `${stockOnHand(db, item.id)} on hand`, href: "/dashboard/inventory" }));
+      .map((item) => ({
+        id: `inv:${item.id}`,
+        title: `${item.name} is low`,
+        detail: `${stockOnHand(db, item.id)} on hand`,
+        href: "/dashboard/inventory",
+      }));
     const requests = db.assistanceRequests
       .filter((request) => request.organizationId === orgId && request.status === "new")
       .slice(0, 2)
-      .map((request) => ({ id: request.id, title: request.requestType, detail: request.neighborhood, href: "/dashboard/community" }));
+      .map((request) => ({
+        id: `asr:${request.id}`,
+        title: request.requestType,
+        detail: request.neighborhood,
+        href: "/dashboard/community",
+      }));
     const audit = db.audit
       .filter((event) => event.organizationId === orgId)
       .slice(0, 4)
-      .map((event) => ({ id: event.id, title: event.summary, detail: formatRelative(event.createdAt), href: "/dashboard" }));
+      .map((event) => ({
+        id: `aud:${event.id}`,
+        title: event.summary,
+        detail: formatRelative(event.createdAt),
+        href: "/dashboard",
+      }));
     return [...low, ...requests, ...audit].slice(0, 8);
   }, [db, orgId]);
+  const seen = useMemo(() => new Set(seenNotificationIds), [seenNotificationIds]);
+  const unreadCount = items.filter((item) => !seen.has(item.id)).length;
+  const label = unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications";
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label="Notifications" />}>
+    <DropdownMenu
+      onOpenChange={(open) => {
+        if (!open && unreadCount > 0) markNotificationsSeen(items.map((item) => item.id));
+      }}
+    >
+      <DropdownMenuTrigger
+        render={
+          <Button variant="ghost" size="icon" className="relative" aria-label={label} />
+        }
+      >
         <Bell />
+        {unreadCount > 0 ? (
+          <span className="absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] leading-4 font-semibold text-destructive-foreground">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        ) : null}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Notifications</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {items.length === 0 ? <p className="px-2 py-3 text-sm text-muted-foreground">Nothing new in this workspace.</p> : null}
-          {items.map((item) => (
-            <DropdownMenuItem key={item.id} render={<Link href={item.href} />}>
-              <span className="flex flex-col">
-                <span className="text-sm">{item.title}</span>
-                <span className="text-xs text-muted-foreground">{item.detail}</span>
-              </span>
-            </DropdownMenuItem>
-          ))}
+          {items.map((item) => {
+            const unread = !seen.has(item.id);
+            return (
+              <DropdownMenuItem key={item.id} render={<Link href={item.href} />}>
+                <span className="flex flex-col">
+                  <span className={cn("text-sm", unread && "font-medium")}>{item.title}</span>
+                  <span className="text-xs text-muted-foreground">{item.detail}</span>
+                </span>
+              </DropdownMenuItem>
+            );
+          })}
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -565,7 +581,7 @@ function HelpSheet() {
           <SheetTitle>Help and support</SheetTitle>
         </SheetHeader>
         <div className="grid gap-3 px-4 text-sm text-muted-foreground">
-          <p>This is a local demonstration. Nothing is emailed, charged, or stored outside this browser.</p>
+          <p>Data for this workspace stays in this browser. Nothing is emailed or charged from here.</p>
           <p>
             Press <kbd className="rounded border px-1 font-mono text-[10px]">⌘K</kbd> /{" "}
             <kbd className="rounded border px-1 font-mono text-[10px]">Ctrl+K</kbd> anytime to jump pages or search records.
@@ -577,7 +593,7 @@ function HelpSheet() {
               setOpen(false);
             }}
           >
-            Reset demo data
+            Reset workspace data
           </Button>
         </div>
       </SheetContent>
@@ -596,9 +612,11 @@ function buildCrumbs(pathname: string, db: ReturnType<typeof useSession>["db"], 
   if (parts.length === 1) return crumbs;
   const labels: Record<string, string> = {
     community: "Community",
+    outreach: "Outreach",
     programs: "Programs",
     events: "Events",
     volunteers: "Volunteers",
+    fundraising: "Fundraising",
     donations: "Donations",
     donors: "Donors",
     sponsors: "Sponsors",
@@ -606,6 +624,7 @@ function buildCrumbs(pathname: string, db: ReturnType<typeof useSession>["db"], 
     communications: "Communications",
     reports: "Impact Reports",
     tasks: "Tasks",
+    users: "Team access",
     settings: "Settings",
     organizations: "Organizations",
     subscriptions: "Subscriptions",

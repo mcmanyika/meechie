@@ -77,7 +77,7 @@ export default function SponsorsPage() {
             <DialogHeader><DialogTitle>Sponsor report preview</DialogTitle></DialogHeader>
             <div className="text-sm">
               <p className="font-medium">{organization?.name}</p>
-              <p className="text-muted-foreground">Prepared for {sponsor?.companyName}. Sample data only.</p>
+              <p className="text-muted-foreground">Prepared for {sponsor?.companyName}.</p>
               <p className="mt-3">Households served in the linked program: {metrics?.householdsServed ?? 0}</p>
               <p>Individuals served: {metrics?.individualsServed ?? 0}</p>
               <p>Volunteer hours in range: {metrics?.volunteerHours ?? 0}</p>

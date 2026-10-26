@@ -22,6 +22,16 @@ function parseAmounts(value: string) {
     .filter((amount) => Number.isFinite(amount) && amount > 0);
 }
 
+function programSummary(button: DonateButton, programs: { id: string; name: string }[]) {
+  if (button.programIds.length === 0) return "Unrestricted";
+  const names = button.programIds
+    .map((id) => programs.find((program) => program.id === id)?.name)
+    .filter(Boolean);
+  if (names.length === 0) return "Unrestricted";
+  if (names.length === 1) return names[0];
+  return `${names.length} programs`;
+}
+
 export function EmbedButtonsPanel() {
   const buttons = useOrgRows("donateButtons");
   const programs = useOrgRows("programs");
@@ -47,11 +57,12 @@ export function EmbedButtonsPanel() {
       label: "Donate",
       amounts: "25, 50, 100, 250",
       defaultAmount: 50,
-      programId: "",
+      programIds: [],
       type: "one_time",
       active: true,
     },
   });
+  const selectedPrograms = form.watch("programIds");
 
   const rows = useMemo(
     () => buttons.slice().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
@@ -66,7 +77,7 @@ export function EmbedButtonsPanel() {
         <div>
           <h2 className="text-sm font-semibold">Website donate buttons</h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Create a button, copy the embed code onto your website, and successful Stripe gifts update this donation ledger.
+            Create a button, choose which programs it can fund, copy the embed code onto your website, and successful Stripe gifts update this donation ledger.
           </p>
         </div>
         {allowed("donations.manage") ? (
@@ -78,7 +89,7 @@ export function EmbedButtonsPanel() {
                 label: "Donate",
                 amounts: "25, 50, 100, 250",
                 defaultAmount: 50,
-                programId: "",
+                programIds: [],
                 type: "one_time",
                 active: true,
               });
@@ -102,7 +113,9 @@ export function EmbedButtonsPanel() {
                   <div>
                     <p className="font-medium">{button.label}</p>
                     <p className="text-muted-foreground">
-                      {button.type === "recurring" ? "Monthly" : "One-time"} · presets {button.amounts.map((amount) => `$${amount}`).join(", ") || "custom"} · default ${button.defaultAmount}
+                      {button.type === "recurring" ? "Monthly" : "One-time"} · presets{" "}
+                      {button.amounts.map((amount) => `$${amount}`).join(", ") || "custom"} · default $
+                      {button.defaultAmount} · {programSummary(button, programs)}
                       {button.active ? "" : " · inactive"}
                     </p>
                   </div>
@@ -138,7 +151,7 @@ export function EmbedButtonsPanel() {
                               label: button.label,
                               amounts: button.amounts.join(", "),
                               defaultAmount: button.defaultAmount,
-                              programId: button.programId ?? "",
+                              programIds: button.programIds ?? [],
                               type: button.type,
                               active: button.active,
                             });
@@ -173,7 +186,10 @@ export function EmbedButtonsPanel() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editing ? "Edit donate button" : "New donate button"}</DialogTitle>
-            <DialogDescription>Donors leave your site, pay on Stripe Checkout, then return. Completed gifts land in Donations.</DialogDescription>
+            <DialogDescription>
+              Choose one or more programs this button can fund. Leave none selected for unrestricted gifts. Donors pay on
+              Stripe Checkout; completed gifts land in Donations.
+            </DialogDescription>
           </DialogHeader>
           <form
             className="grid gap-3"
@@ -186,7 +202,7 @@ export function EmbedButtonsPanel() {
                   label: values.label,
                   amounts,
                   defaultAmount: values.defaultAmount,
-                  programId: values.programId || null,
+                  programIds: values.programIds,
                   type: values.type,
                   active: values.active,
                   createdAt: editing?.createdAt ?? new Date().toISOString(),
@@ -215,14 +231,36 @@ export function EmbedButtonsPanel() {
               <option value="one_time">One-time</option>
               <option value="recurring">Monthly</option>
             </select>
-            <select aria-label="Program" className="h-8 rounded-lg border bg-transparent px-2 text-sm" {...form.register("programId")}>
-              <option value="">Where the need is greatest</option>
-              {programs.map((program) => (
-                <option key={program.id} value={program.id}>
-                  {program.name}
-                </option>
-              ))}
-            </select>
+            <fieldset className="grid gap-2">
+              <legend className="text-sm font-medium">Programs this button can fund</legend>
+              <p className="text-xs text-muted-foreground">
+                Select specific programs, or leave all unchecked so gifts stay unrestricted.
+              </p>
+              {programs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No programs yet. Create a program first to designate gifts.</p>
+              ) : (
+                <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border p-2">
+                  {programs.map((program) => {
+                    const checked = selectedPrograms.includes(program.id);
+                    return (
+                      <label key={program.id} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => {
+                            const next = event.target.checked
+                              ? [...selectedPrograms, program.id]
+                              : selectedPrograms.filter((id) => id !== program.id);
+                            form.setValue("programIds", next, { shouldDirty: true });
+                          }}
+                        />
+                        {program.name}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </fieldset>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" {...form.register("active")} />
               Active on public give page

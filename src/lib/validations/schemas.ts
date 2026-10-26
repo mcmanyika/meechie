@@ -184,7 +184,7 @@ export const donateButtonSchema = z.object({
   label: z.string().trim().min(2).max(60),
   amounts: z.string().trim().min(1),
   defaultAmount: z.number().positive().max(1_000_000),
-  programId: z.string(),
+  programIds: z.array(z.string()),
   type: z.enum(["one_time", "recurring"]),
   active: z.boolean(),
 });
@@ -261,6 +261,21 @@ export const staffTaskSchema = z.object({
   dueDate: z.string(),
 });
 
+export const outreachActivitySchema = z.object({
+  title: z.string().trim().min(2, "Title is required.").max(120),
+  type: z.enum(["canvass", "neighborhood_visit", "flyering", "partnership", "other"]),
+  status: z.enum(["planned", "completed", "cancelled"]),
+  date: z.string().min(1, "Date is required."),
+  neighborhood: z.string().trim().min(1, "Neighborhood is required.").max(80),
+  city: z.string().trim().min(1, "City is required.").max(80),
+  programId: z.string(),
+  leadUserId: z.string().min(1, "Choose a lead."),
+  volunteerIds: z.array(z.string()),
+  householdsReached: z.number().int().min(0),
+  individualsReached: z.number().int().min(0),
+  notes: z.string().trim().max(2000),
+});
+
 export type MemberFormValues = z.infer<typeof memberSchema>;
 export type ProgramFormValues = z.infer<typeof programSchema>;
 export type EventFormValues = z.infer<typeof eventSchema>;
@@ -271,3 +286,4 @@ export type DonorFormValues = z.infer<typeof donorSchema>;
 export type InventoryFormValues = z.infer<typeof inventorySchema>;
 export type MovementFormValues = z.infer<typeof movementSchema>;
 export type StaffTaskFormValues = z.infer<typeof staffTaskSchema>;
+export type OutreachActivityFormValues = z.infer<typeof outreachActivitySchema>;

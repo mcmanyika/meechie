@@ -23,6 +23,8 @@ export type Permission =
   | "reports.financial"
   | "tasks.view"
   | "tasks.manage"
+  | "outreach.view"
+  | "outreach.manage"
   | "settings.manage"
   | "platform.manage";
 
@@ -49,6 +51,8 @@ const ALL: Permission[] = [
   "reports.financial",
   "tasks.view",
   "tasks.manage",
+  "outreach.view",
+  "outreach.manage",
   "settings.manage",
   "platform.manage",
 ];
@@ -74,6 +78,8 @@ export const PERMISSIONS: Record<Role, Permission[]> = {
     "sponsors.view",
     "tasks.view",
     "tasks.manage",
+    "outreach.view",
+    "outreach.manage",
   ],
   volunteer_coordinator: [
     "dashboard.view",
@@ -89,6 +95,8 @@ export const PERMISSIONS: Record<Role, Permission[]> = {
     "communications.manage",
     "tasks.view",
     "tasks.manage",
+    "outreach.view",
+    "outreach.manage",
   ],
   finance_manager: [
     "dashboard.view",
@@ -102,7 +110,7 @@ export const PERMISSIONS: Record<Role, Permission[]> = {
     "tasks.view",
     "tasks.manage",
   ],
-  volunteer: ["dashboard.view", "events.view", "volunteers.view", "tasks.view", "tasks.manage"],
+  volunteer: ["dashboard.view", "events.view", "volunteers.view", "tasks.view", "tasks.manage", "outreach.view"],
   community_member: ["dashboard.view", "events.view", "programs.view"],
   sponsor: ["dashboard.view", "reports.view", "sponsors.view", "programs.view"],
 };

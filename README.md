@@ -20,15 +20,13 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Explore
 
-1. Choose **Explore demo** or sign in. You enter as Jordan Hale (executive director). No password is required for the demo path.
-2. A product tour starts on the dashboard. Skip it or restart it from **Help and support**.
-3. The Back-to-School Meechie Giveaway walks through publish, registration, volunteer assignment, check-in, and a summary.
-4. Use the **Staff role** menu to preview finance, volunteer, community, or sponsor views.
-5. The public community portal is at [/portal](http://localhost:3000/portal). Donations: [/give/meechie](http://localhost:3000/give/meechie).
+1. Sign in with your staff account (Firebase email/password). Admin: `manyikapartson@gmail.com` when that account exists in Firebase Auth.
+2. Use the dashboard for programs, events, volunteers, donations, and impact reports.
+3. The public community portal is at [/portal](http://localhost:3000/portal). Donations: [/give/meechie](http://localhost:3000/give/meechie).
 
-## Reset sample data
+## Reset workspace data
 
-Open **Help and support** or **Settings** and choose **Reset demo data**. Data lives in `localStorage` under `meechieos.demo.v3`.
+Open **Help and support** or **Settings** and choose **Reset workspace data**. That clears local records and reseeds org, admin, and programs only. Data lives in `localStorage` under `meechieos.demo.v8`.
 
 ## Tests
 

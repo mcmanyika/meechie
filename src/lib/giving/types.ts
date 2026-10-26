@@ -7,7 +7,8 @@ export type PublicDonateButton = {
   label: string;
   amounts: number[];
   defaultAmount: number;
-  programId: string | null;
+  /** Empty = unrestricted. One or more = donor may designate among these programs. */
+  programIds: string[];
   type: "one_time" | "recurring";
 };
 

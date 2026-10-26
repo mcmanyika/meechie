@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { DEMO_ADMIN_USER_ID, MEECHIE_ORG_ID } from "@/config/constants";
+import { DEMO_ADMIN_EMAIL, DEMO_ADMIN_USER_ID, MEECHIE_ORG_ID, STAFF_ROLES } from "@/config/constants";
 import { demoRepository } from "@/lib/repositories/local";
 import { createSeedDatabase } from "@/lib/demo/seed";
 import { loadDatabase, loadSession, saveSession } from "@/lib/demo/storage";
@@ -38,6 +38,7 @@ import type {
   MessageTemplate,
   Organization,
   OrgEvent,
+  OutreachActivity,
   PlanId,
   Program,
   Sponsor,
@@ -56,6 +57,7 @@ interface DemoStore {
   mobileNav: boolean;
   searchOpen: boolean;
   helpOpen: boolean;
+  seenNotificationIds: string[];
   hydrate: () => Promise<void>;
   resetDemo: () => Promise<void>;
   enterDemo: (userId?: string) => void;
@@ -69,12 +71,17 @@ interface DemoStore {
   setMobileNav: (value: boolean) => void;
   setSearchOpen: (value: boolean) => void;
   setHelpOpen: (value: boolean) => void;
+  markNotificationsSeen: (ids: string[]) => void;
   saveMember: (member: CommunityMember, mode: "create" | "update") => Result<CommunityMember>;
   saveHousehold: (household: Household, mode: "create" | "update") => Result<Household>;
   saveProgram: (program: Program, mode: "create" | "update") => Result<Program>;
+  deleteProgram: (programId: string) => Result<true>;
   saveTask: (task: StaffTask, mode: "create" | "update") => Result<StaffTask>;
   setTaskStatus: (taskId: string, status: StaffTask["status"]) => Result<StaffTask>;
   deleteTask: (taskId: string) => Result<true>;
+  saveOutreachActivity: (activity: OutreachActivity, mode: "create" | "update") => Result<OutreachActivity>;
+  setOutreachStatus: (activityId: string, status: OutreachActivity["status"]) => Result<OutreachActivity>;
+  deleteOutreachActivity: (activityId: string) => Result<true>;
   saveEvent: (event: OrgEvent, mode: "create" | "update") => Result<OrgEvent>;
   setEventStatus: (eventId: string, status: OrgEvent["status"]) => Result<OrgEvent>;
   openRegistration: (eventId: string) => Result<true>;
@@ -112,11 +119,12 @@ interface DemoStore {
   saveReport: (input: { title: string; periodStart: string; periodEnd: string; programId: string | null; eventId: string | null; location: string | null }) => Result<true>;
 }
 
-function sessionFrom(state: Pick<DemoStore, "userId" | "orgId" | "sidebarCollapsed">) {
+function sessionFrom(state: Pick<DemoStore, "userId" | "orgId" | "sidebarCollapsed" | "seenNotificationIds">) {
   saveSession({
     userId: state.userId,
     orgId: state.orgId,
     sidebarCollapsed: state.sidebarCollapsed,
+    seenNotificationIds: state.seenNotificationIds,
   });
 }
 
@@ -141,6 +149,39 @@ export const useDemoStore = create<DemoStore>((set, get) => {
   const replace = <T extends { id: string }>(rows: T[], row: T, mode: "create" | "update") =>
     mode === "create" ? [row, ...rows] : rows.map((item) => (item.id === row.id ? row : item));
 
+  const ensurePrimaryAdmin = (db: DemoDatabase): { db: DemoDatabase; admin: User } => {
+    const now = new Date().toISOString();
+    const adminEmail = DEMO_ADMIN_EMAIL.toLowerCase();
+    const existing = db.users.find((item) => item.email.toLowerCase() === adminEmail);
+    const admin: User = existing
+      ? {
+          ...existing,
+          name: existing.name || "Partson Manyika",
+          email: DEMO_ADMIN_EMAIL,
+          role: "organization_admin",
+          title: "Executive director",
+          accountStatus: "active",
+          organizationId: MEECHIE_ORG_ID,
+          updatedAt: now,
+        }
+      : {
+          id: DEMO_ADMIN_USER_ID,
+          organizationId: MEECHIE_ORG_ID,
+          name: "Partson Manyika",
+          email: DEMO_ADMIN_EMAIL,
+          role: "organization_admin",
+          title: "Executive director",
+          avatarInitials: "PM",
+          accountStatus: "active",
+          createdAt: now,
+          updatedAt: now,
+        };
+    const users = existing
+      ? db.users.map((item) => (item.id === existing.id ? admin : item.id === DEMO_ADMIN_USER_ID && item.id !== existing.id ? { ...item, email: `${item.id}@replaced.local` } : item))
+      : [admin, ...db.users.filter((item) => item.id !== DEMO_ADMIN_USER_ID)];
+    return { db: { ...db, users }, admin };
+  };
+
   return {
     hydrated: false,
     db: createSeedDatabase(),
@@ -150,23 +191,27 @@ export const useDemoStore = create<DemoStore>((set, get) => {
     mobileNav: false,
     searchOpen: false,
     helpOpen: false,
+    seenNotificationIds: [],
 
     hydrate: async () => {
-      const hadStoredDatabase = Boolean(loadDatabase());
-      const db = await demoRepository.load();
+      const loaded = await demoRepository.load();
+      const { db, admin } = ensurePrimaryAdmin(loaded);
       const session = loadSession();
       const current = get();
       const requestedUser = session?.userId ?? current.userId;
-      const user = db.users.find((item) => item.id === requestedUser) ?? null;
+      const matched = db.users.find((item) => item.id === requestedUser) ?? null;
+      const resolved =
+        matched?.email.toLowerCase() === DEMO_ADMIN_EMAIL.toLowerCase() ? admin : matched;
       set({
         db,
         hydrated: true,
-        userId: user?.id ?? null,
-        orgId: user ? MEECHIE_ORG_ID : null,
+        userId: resolved?.id ?? null,
+        orgId: resolved ? MEECHIE_ORG_ID : null,
         sidebarCollapsed: session?.sidebarCollapsed ?? current.sidebarCollapsed,
+        seenNotificationIds: session?.seenNotificationIds ?? current.seenNotificationIds,
       });
-      if (user) sessionFrom({ ...get(), userId: user.id, orgId: MEECHIE_ORG_ID });
-      if (!hadStoredDatabase) void demoRepository.save(db);
+      if (resolved) sessionFrom({ ...get(), userId: resolved.id, orgId: MEECHIE_ORG_ID });
+      void demoRepository.save(db);
     },
 
     resetDemo: async () => {
@@ -177,6 +222,7 @@ export const useDemoStore = create<DemoStore>((set, get) => {
         db,
         userId: user?.id ?? DEMO_ADMIN_USER_ID,
         orgId: user?.organizationId ?? MEECHIE_ORG_ID,
+        seenNotificationIds: [],
       });
       sessionFrom(get());
     },
@@ -190,6 +236,13 @@ export const useDemoStore = create<DemoStore>((set, get) => {
 
     enterByEmail: (email) => {
       const normalized = email.trim().toLowerCase();
+      if (normalized === DEMO_ADMIN_EMAIL.toLowerCase()) {
+        const { db, admin } = ensurePrimaryAdmin(get().db);
+        commit(db);
+        set({ userId: admin.id, orgId: MEECHIE_ORG_ID });
+        sessionFrom(get());
+        return { ok: true, data: { role: admin.role, accountStatus: "active" } };
+      }
       const user = get().db.users.find((item) => item.email.toLowerCase() === normalized);
       if (!user) return fail("No The Meechie Project account is linked to this email yet.");
       set({ userId: user.id, orgId: MEECHIE_ORG_ID });
@@ -199,6 +252,25 @@ export const useDemoStore = create<DemoStore>((set, get) => {
 
     registerUser: (input) => {
       const email = input.email.trim().toLowerCase();
+      if (email === DEMO_ADMIN_EMAIL.toLowerCase()) {
+        const { db, admin } = ensurePrimaryAdmin(get().db);
+        const now = new Date().toISOString();
+        const named: User = {
+          ...admin,
+          name: input.name.trim() || admin.name,
+          avatarInitials: (input.name.trim() || admin.name)
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase() ?? "")
+            .join("") || "PM",
+          updatedAt: now,
+        };
+        commit({ ...db, users: db.users.map((item) => (item.id === named.id ? named : item)) });
+        set({ userId: named.id, orgId: MEECHIE_ORG_ID });
+        sessionFrom(get());
+        return { ok: true, data: named };
+      }
       if (get().db.users.some((item) => item.email.toLowerCase() === email)) {
         return fail("An account with this email already exists. Sign in instead.");
       }
@@ -242,10 +314,14 @@ export const useDemoStore = create<DemoStore>((set, get) => {
       if (!who.ok) return who;
       const existing = get().db.users.find((item) => item.id === userId);
       if (!existing) return fail("Account not found.");
+      if (!STAFF_ROLES.includes(role as (typeof STAFF_ROLES)[number])) {
+        return fail("Choose a staff role for dashboard access.");
+      }
       if (existing.accountStatus === "active" && existing.role === role) {
         return fail("That account is already active with this role.");
       }
       const now = new Date().toISOString();
+      const wasPending = existing.accountStatus !== "active";
       const user: User = {
         ...existing,
         role,
@@ -258,10 +334,12 @@ export const useDemoStore = create<DemoStore>((set, get) => {
           { ...get().db, users: get().db.users.map((item) => (item.id === userId ? user : item)) },
           who.data.orgId,
           who.data.name,
-          "user.activated",
+          wasPending ? "user.activated" : "user.classified",
           "user",
           user.id,
-          `${who.data.name} activated ${user.name} as ${ROLE_LABELS[role]}.`,
+          wasPending
+            ? `${who.data.name} activated ${user.name} as ${ROLE_LABELS[role]}.`
+            : `${who.data.name} classified ${user.name} as ${ROLE_LABELS[role]}.`,
         ),
       );
       return { ok: true, data: user };
@@ -291,6 +369,15 @@ export const useDemoStore = create<DemoStore>((set, get) => {
     setMobileNav: (mobileNav) => set({ mobileNav }),
     setSearchOpen: (searchOpen) => set({ searchOpen }),
     setHelpOpen: (helpOpen) => set({ helpOpen }),
+
+    markNotificationsSeen: (ids) => {
+      if (ids.length === 0) return;
+      const seen = new Set(get().seenNotificationIds);
+      ids.forEach((id) => seen.add(id));
+      const seenNotificationIds = Array.from(seen);
+      set({ seenNotificationIds });
+      sessionFrom(get());
+    },
 
     saveMember: (member, mode) => {
       const who = actor("community.manage");
@@ -338,6 +425,52 @@ export const useDemoStore = create<DemoStore>((set, get) => {
         ),
       );
       return { ok: true, data: next };
+    },
+
+    deleteProgram: (programId) => {
+      const who = actor("programs.manage");
+      if (!who.ok) return who;
+      const existing = get().db.programs.find((item) => item.id === programId && item.organizationId === who.data.orgId);
+      if (!existing) return fail("Program not found.");
+      const linkedEvents = get().db.events.filter(
+        (event) => event.organizationId === who.data.orgId && event.programId === programId,
+      );
+      if (linkedEvents.length > 0) {
+        return fail(`Remove or reassign ${linkedEvents.length} linked event${linkedEvents.length === 1 ? "" : "s"} before deleting this program.`);
+      }
+      const clearProgram = <T extends { programId: string | null }>(rows: T[]) =>
+        rows.map((row) => (row.programId === programId ? { ...row, programId: null } : row));
+      commit(
+        appendAudit(
+          {
+            ...get().db,
+            programs: get().db.programs.filter((item) => item.id !== programId),
+            donations: clearProgram(get().db.donations),
+            donateButtons: get().db.donateButtons.map((button) =>
+              button.programIds.includes(programId)
+                ? { ...button, programIds: button.programIds.filter((id) => id !== programId) }
+                : button,
+            ),
+            expenses: clearProgram(get().db.expenses),
+            tasks: clearProgram(get().db.tasks),
+            outreachActivities: clearProgram(get().db.outreachActivities ?? []),
+            inventoryItems: clearProgram(get().db.inventoryItems),
+            reports: clearProgram(get().db.reports),
+            sponsors: get().db.sponsors.map((sponsor) =>
+              sponsor.programIds.includes(programId)
+                ? { ...sponsor, programIds: sponsor.programIds.filter((id) => id !== programId) }
+                : sponsor,
+            ),
+          },
+          who.data.orgId,
+          who.data.name,
+          "program.deleted",
+          "program",
+          existing.id,
+          existing.name,
+        ),
+      );
+      return { ok: true, data: true };
     },
 
     saveTask: (task, mode) => {
@@ -409,6 +542,100 @@ export const useDemoStore = create<DemoStore>((set, get) => {
           who.data.name,
           "task.deleted",
           "task",
+          existing.id,
+          existing.title,
+        ),
+      );
+      return { ok: true, data: true };
+    },
+
+    saveOutreachActivity: (activity, mode) => {
+      const who = actor("outreach.manage");
+      if (!who.ok) return who;
+      const lead = get().db.users.find((item) => item.id === activity.leadUserId);
+      if (!lead || (lead.accountStatus ?? "active") !== "active") {
+        return fail("Choose an active staff account as the lead.");
+      }
+      if (activity.programId) {
+        const program = get().db.programs.find((item) => item.id === activity.programId && item.organizationId === who.data.orgId);
+        if (!program) return fail("Linked program was not found.");
+      }
+      const volunteerIds = activity.volunteerIds.filter((id) =>
+        get().db.volunteers.some((volunteer) => volunteer.id === id && volunteer.organizationId === who.data.orgId),
+      );
+      const now = new Date().toISOString();
+      const next: OutreachActivity = {
+        ...activity,
+        organizationId: who.data.orgId,
+        title: activity.title.trim(),
+        neighborhood: activity.neighborhood.trim(),
+        city: activity.city.trim(),
+        notes: activity.notes.trim(),
+        programId: activity.programId || null,
+        volunteerIds,
+        householdsReached: Math.max(0, Math.floor(activity.householdsReached)),
+        individualsReached: Math.max(0, Math.floor(activity.individualsReached)),
+        updatedAt: now,
+      };
+      if (!next.title) return fail("Title is required.");
+      if (!next.date) return fail("Date is required.");
+      commit(
+        appendAudit(
+          { ...get().db, outreachActivities: replace(get().db.outreachActivities ?? [], next, mode) },
+          who.data.orgId,
+          who.data.name,
+          mode === "create" ? "outreach.created" : "outreach.updated",
+          "outreach",
+          next.id,
+          next.title,
+        ),
+      );
+      return { ok: true, data: next };
+    },
+
+    setOutreachStatus: (activityId, status) => {
+      const who = actor("outreach.manage");
+      if (!who.ok) return who;
+      const existing = (get().db.outreachActivities ?? []).find(
+        (item) => item.id === activityId && item.organizationId === who.data.orgId,
+      );
+      if (!existing) return fail("Outreach activity not found.");
+      const now = new Date().toISOString();
+      const next: OutreachActivity = { ...existing, status, updatedAt: now };
+      commit(
+        appendAudit(
+          {
+            ...get().db,
+            outreachActivities: (get().db.outreachActivities ?? []).map((item) => (item.id === activityId ? next : item)),
+          },
+          who.data.orgId,
+          who.data.name,
+          "outreach.status",
+          "outreach",
+          next.id,
+          `${next.title} marked ${status.replaceAll("_", " ")}.`,
+        ),
+      );
+      return { ok: true, data: next };
+    },
+
+    deleteOutreachActivity: (activityId) => {
+      const who = actor("outreach.manage");
+      if (!who.ok) return who;
+      const existing = (get().db.outreachActivities ?? []).find(
+        (item) => item.id === activityId && item.organizationId === who.data.orgId,
+      );
+      if (!existing) return fail("Outreach activity not found.");
+      commit(
+        appendAudit(
+          {
+            ...get().db,
+            outreachActivities: (get().db.outreachActivities ?? []).filter((item) => item.id !== activityId),
+          },
+          who.data.orgId,
+          who.data.name,
+          "outreach.deleted",
+          "outreach",
           existing.id,
           existing.title,
         ),
@@ -726,6 +953,12 @@ export const useDemoStore = create<DemoStore>((set, get) => {
       if (!who.ok) return who;
       if (!button.label.trim()) return fail("Add a button label.");
       if (!Number.isFinite(button.defaultAmount) || button.defaultAmount <= 0) return fail("Set a default gift amount.");
+      const programIds = [...new Set(button.programIds)].filter((id) =>
+        get().db.programs.some((program) => program.id === id && program.organizationId === who.data.orgId),
+      );
+      if (programIds.length !== button.programIds.length) {
+        return fail("Choose programs that belong to this organization.");
+      }
       const now = new Date().toISOString();
       const next: DonateButton = {
         ...button,
@@ -733,6 +966,7 @@ export const useDemoStore = create<DemoStore>((set, get) => {
         organizationId: who.data.orgId,
         label: button.label.trim(),
         amounts: button.amounts.filter((amount) => amount > 0).slice(0, 8),
+        programIds,
         updatedAt: now,
         createdAt: mode === "create" ? now : button.createdAt,
       };

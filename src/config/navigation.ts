@@ -3,12 +3,15 @@ import {
   Building2,
   CalendarDays,
   CheckSquare,
+  CircleDollarSign,
   HandCoins,
   HeartHandshake,
   LayoutDashboard,
+  MapPin,
   Megaphone,
   PieChart,
   Settings,
+  UserCog,
   Users,
   UsersRound,
   Warehouse,
@@ -38,6 +41,7 @@ export const APP_NAV: NavGroup[] = [
     label: "Programs",
     items: [
       { href: "/dashboard/community", label: "Community", icon: Users, permission: "community.view", entitlement: "community" },
+      { href: "/dashboard/outreach", label: "Outreach", icon: MapPin, permission: "outreach.view" },
       { href: "/dashboard/programs", label: "Programs", icon: Warehouse, permission: "programs.view", entitlement: "programs" },
       { href: "/dashboard/events", label: "Events", icon: CalendarDays, permission: "events.view", entitlement: "events" },
       { href: "/dashboard/volunteers", label: "Volunteers", icon: UsersRound, permission: "volunteers.view", entitlement: "volunteers" },
@@ -46,6 +50,7 @@ export const APP_NAV: NavGroup[] = [
   {
     label: "Fundraising",
     items: [
+      { href: "/dashboard/fundraising", label: "Fundraising", icon: CircleDollarSign, permission: "donations.view", entitlement: "donations" },
       { href: "/dashboard/donations", label: "Donations", icon: HandCoins, permission: "donations.view", entitlement: "donations" },
       { href: "/dashboard/donors", label: "Donors", icon: HeartHandshake, permission: "donations.view", entitlement: "donations" },
       { href: "/dashboard/sponsors", label: "Sponsors", icon: Building2, permission: "sponsors.view", entitlement: "sponsors" },
@@ -62,6 +67,9 @@ export const APP_NAV: NavGroup[] = [
   },
   {
     label: "System",
-    items: [{ href: "/dashboard/settings", label: "Settings", icon: Settings, permission: "settings.manage" }],
+    items: [
+      { href: "/dashboard/users", label: "Team access", icon: UserCog, permission: "settings.manage" },
+      { href: "/dashboard/settings", label: "Settings", icon: Settings, permission: "settings.manage" },
+    ],
   },
 ];

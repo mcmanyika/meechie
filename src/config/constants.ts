@@ -4,10 +4,11 @@ export const PRODUCT_TAGLINE = "We put the fun in faith.";
 export const MEECHIE_ORG_ID = "org_meechie";
 
 export const DEMO_ADMIN_USER_ID = "user_jordan";
+export const DEMO_ADMIN_EMAIL = "manyikapartson@gmail.com";
 export const GIVEAWAY_EVENT_ID = "evt_meechie_giveaway";
 
-export const DB_STORAGE_KEY = "meechieos.demo.v4";
-export const SESSION_STORAGE_KEY = "meechieos.session.v4";
+export const DB_STORAGE_KEY = "meechieos.demo.v8";
+export const SESSION_STORAGE_KEY = "meechieos.session.v8";
 
 /** Brand colors from themeechieproject.org */
 export const BRAND = {

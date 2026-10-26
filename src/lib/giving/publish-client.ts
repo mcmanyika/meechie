@@ -25,7 +25,7 @@ export async function publishGivingProfile(input: {
         label: button.label,
         amounts: button.amounts,
         defaultAmount: button.defaultAmount,
-        programId: button.programId,
+        programIds: button.programIds ?? [],
         type: button.type,
       })),
     }),

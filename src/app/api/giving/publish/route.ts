@@ -17,7 +17,7 @@ const publishSchema = z.object({
         label: z.string().trim().min(1).max(60),
         amounts: z.array(z.number().positive().max(1_000_000)).max(8),
         defaultAmount: z.number().positive().max(1_000_000),
-        programId: z.string().nullable(),
+        programIds: z.array(z.string()).max(50),
         type: z.enum(["one_time", "recurring"]),
       }),
     )

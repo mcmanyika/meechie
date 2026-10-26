@@ -53,7 +53,6 @@ export default function ProgramDetailPage() {
         <PageHeader
           eyebrow="Program"
           title={program.name}
-          description={program.description}
           actions={
             allowed("programs.manage") ? (
               <Button variant="outline" onClick={() => setOpen(true)}>

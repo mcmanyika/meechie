@@ -26,6 +26,7 @@ function GiveForm() {
   const [email, setEmail] = useState("");
   const [amount, setAmount] = useState(50);
   const [method, setMethod] = useState<"card" | "ach">("card");
+  const [programId, setProgramId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -47,7 +48,11 @@ function GiveForm() {
       }
       setProfile(body);
       const selected = body.buttons.find((button) => button.id === buttonId) ?? body.buttons[0];
-      if (selected) setAmount(selected.defaultAmount);
+      if (selected) {
+        setAmount(selected.defaultAmount);
+        const allowed = selected.programIds ?? [];
+        setProgramId(allowed.length === 1 ? allowed[0]! : "");
+      }
       setError(null);
       setLoading(false);
     })();
@@ -60,6 +65,13 @@ function GiveForm() {
     if (!profile) return null;
     return profile.buttons.find((item) => item.id === buttonId) ?? profile.buttons[0] ?? null;
   }, [profile, buttonId]);
+
+  const allowedPrograms = useMemo(() => {
+    if (!profile || !button) return [];
+    const ids = button.programIds ?? [];
+    if (ids.length === 0) return [];
+    return profile.programs.filter((program) => ids.includes(program.id));
+  }, [profile, button]);
 
   if (loading) return <p className="mx-auto max-w-md p-8 text-sm text-stone-600">Loading give page…</p>;
   if (error || !profile || !button) {
@@ -80,6 +92,10 @@ function GiveForm() {
         className="mx-auto grid max-w-md gap-4 rounded-2xl border-2 border-black bg-white p-6 shadow-[6px_6px_0_#000]"
         onSubmit={(event) => {
           event.preventDefault();
+          if (allowedPrograms.length > 0 && !programId) {
+            toast.error("Choose a program for this gift.");
+            return;
+          }
           void (async () => {
             setSubmitting(true);
             try {
@@ -88,7 +104,7 @@ function GiveForm() {
                 name,
                 email,
                 amountCents: Math.round(amount * 100),
-                programId: button.programId,
+                programId: programId || null,
                 type: button.type,
                 method,
                 returnTo: "embed",
@@ -158,6 +174,30 @@ function GiveForm() {
             required
           />
         </label>
+        {allowedPrograms.length === 1 ? (
+          <p className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-700">
+            Supporting <span className="font-medium">{allowedPrograms[0]?.name}</span>
+          </p>
+        ) : null}
+        {allowedPrograms.length > 1 ? (
+          <label className="grid gap-1 text-sm text-stone-600">
+            Program
+            <select
+              aria-label="Program"
+              className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-900"
+              value={programId}
+              onChange={(event) => setProgramId(event.target.value)}
+              required
+            >
+              <option value="">Choose a program</option>
+              {allowedPrograms.map((program) => (
+                <option key={program.id} value={program.id}>
+                  {program.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <select
           aria-label="Payment method"
           className="h-11 rounded-xl border border-stone-200 bg-white px-3 text-sm"
@@ -169,9 +209,11 @@ function GiveForm() {
         </select>
         <p className="text-xs text-stone-500">
           {button.type === "recurring" ? "Monthly gift · " : "One-time gift · "}
-          {button.programId
-            ? profile.programs.find((program) => program.id === button.programId)?.name ?? "Selected program"
-            : "Where the need is greatest"}
+          {allowedPrograms.length === 0
+            ? "Where the need is greatest"
+            : allowedPrograms.length === 1
+              ? allowedPrograms[0]?.name
+              : "Designate a program above"}
         </p>
         <button
           className="h-11 rounded-full text-sm font-medium text-white disabled:opacity-60"
