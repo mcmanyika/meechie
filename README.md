@@ -1,6 +1,6 @@
 # The Meechie Project
 
-Staff and community tools for **The Meechie Project** — programs, events, volunteers, fundraising, inventory, communications, and impact reporting in Dallas.
+Staff and community tools for **The Meechie Project** — programs, events, volunteers, fundraising, inventory, and impact reporting in Dallas.
 
 Product tagline: **Love, joy, and community in Dallas**.
 

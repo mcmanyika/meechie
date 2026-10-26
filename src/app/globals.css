@@ -409,16 +409,29 @@
     letter-spacing: -0.02em;
   }
   a,
+  a[href],
   button:not(:disabled),
   [role="link"],
   [role="button"]:not([aria-disabled="true"]),
+  [data-slot="button"]:not(:disabled),
   summary {
     cursor: pointer;
   }
+  a[href] *,
+  [role="link"] * {
+    cursor: inherit;
+  }
   button:disabled,
-  [aria-disabled="true"] {
+  [aria-disabled="true"],
+  [data-slot="button"]:disabled {
     cursor: not-allowed;
   }
+}
+
+/* Keep pointer on links even when utility classes or component styles fight base layer. */
+a[href],
+[role="link"] {
+  cursor: pointer !important;
 }
 
 @utility font-heading {
