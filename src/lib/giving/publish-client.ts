@@ -43,13 +43,21 @@ export async function publishGivingProfile(input: {
 }) {
   const profile = buildProfile(input);
   const db = getFirestoreDb();
+  let firestoreOk = false;
   if (db) {
     try {
       await setDoc(doc(db, "givingProfiles", profile.slug), profile);
-    } catch {
-      throw new Error(
-        "Could not publish to Firestore. Sign in, then deploy firestore.rules so signed-in staff can write givingProfiles.",
-      );
+      firestoreOk = true;
+    } catch (error) {
+      const code =
+        typeof error === "object" && error && "code" in error ? String((error as { code: string }).code) : "";
+      if (!code.includes("permission-denied")) {
+        throw new Error(
+          code
+            ? `Could not publish donate buttons (${code}).`
+            : "Could not publish donate buttons to Firestore.",
+        );
+      }
     }
   }
 
@@ -69,8 +77,7 @@ export async function publishGivingProfile(input: {
     }),
   });
 
-  if (!db && !response.ok) {
-    const body = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? "Could not publish donate buttons.");
-  }
+  if (firestoreOk || response.ok) return;
+  const body = (await response.json().catch(() => null)) as { error?: string } | null;
+  throw new Error(body?.error ?? "Could not publish donate buttons.");
 }

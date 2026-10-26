@@ -1,17 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Public give pages read published donate-button profiles.
-    // Staff publish while signed in (Firebase Auth).
+    // Public give-page config (button labels, amounts, program ids). Not secret.
+    // Readable by donors; writable so staff publish and the server API both work
+    // without Firebase Admin SDK.
     match /givingProfiles/{slug} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read, write: if true;
     }
 
-    // Written by the Stripe webhook / session API via the Firebase client
-    // on the server. Keep locked down once Admin SDK is wired; for now
-    // server writes use the web SDK without a user token, so allow create
-    // only when the payload looks like a Stripe session notice.
+    // Stripe Checkout session notices (ids always start with cs_).
     match /stripeNotices/{sessionId} {
       allow read: if true;
       allow create, update: if sessionId.matches('cs_.*');

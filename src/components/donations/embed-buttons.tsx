@@ -45,14 +45,8 @@ export function EmbedButtonsPanel() {
 
   useEffect(() => {
     if (!organization) return;
-    void publishGivingProfile({
-      organization,
-      buttons,
-      programs,
-    }).catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : "Could not publish donate buttons.";
-      toast.error(message);
-    });
+    // Background sync for the public give page. Errors surface on explicit save.
+    void publishGivingProfile({ organization, buttons, programs }).catch(() => undefined);
   }, [organization, buttons, programs]);
 
   const form = useForm<DonateButtonFormValues>({
@@ -197,7 +191,7 @@ export function EmbedButtonsPanel() {
           </DialogHeader>
           <form
             className="grid gap-3"
-            onSubmit={form.handleSubmit((values) => {
+            onSubmit={form.handleSubmit(async (values) => {
               const amounts = parseAmounts(values.amounts);
               const result = saveDonateButton(
                 {
@@ -216,6 +210,23 @@ export function EmbedButtonsPanel() {
               );
               if (!result.ok) {
                 toast.error(result.error);
+                return;
+              }
+              try {
+                await publishGivingProfile({
+                  organization,
+                  buttons: useDemoStore
+                    .getState()
+                    .db.donateButtons.filter((item) => item.organizationId === organization.id),
+                  programs,
+                });
+              } catch (error) {
+                toast.error(
+                  error instanceof Error
+                    ? error.message
+                    : "Button saved locally, but the public give page did not publish.",
+                );
+                setOpen(false);
                 return;
               }
               toast.success(editing ? "Button updated." : "Button created. Copy the embed code for your website.");
