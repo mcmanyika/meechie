@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useOrgRows, useSession } from "@/hooks/use-org";
+import { getAppUrl } from "@/lib/app-url";
 import { publishGivingProfile } from "@/lib/giving/publish-client";
 import { createId } from "@/lib/ids";
 import { donateButtonSchema, type DonateButtonFormValues } from "@/lib/validations/schemas";
@@ -40,7 +41,7 @@ export function EmbedButtonsPanel() {
   const deleteDonateButton = useDemoStore((state) => state.deleteDonateButton);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<DonateButton | null>(null);
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = getAppUrl(typeof window !== "undefined" ? window.location.origin : null);
 
   useEffect(() => {
     if (!organization) return;

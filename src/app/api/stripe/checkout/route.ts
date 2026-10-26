@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getAppUrl } from "@/lib/app-url";
 import { getStripe } from "@/lib/stripe/client";
 
 const checkoutSchema = z.object({
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
   const parsed = checkoutSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Check the gift amount, name, and email." }, { status: 400 });
   const input = parsed.data;
-  const origin = new URL(request.url).origin;
+  const origin = getAppUrl(new URL(request.url).origin);
   const slug = (input.orgSlug ?? "").toLowerCase();
   const returnPath =
     input.returnTo === "portal"

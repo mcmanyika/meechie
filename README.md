@@ -9,6 +9,15 @@ Product tagline: **Love, joy, and community in Dallas**.
 - Node.js 20.19 or newer is recommended.
 - npm
 
+## Environment
+
+Copy `.env.example` to `.env.local` and set at least:
+
+- `NEXT_PUBLIC_APP_URL` — canonical site origin (e.g. `https://meechie.vercel.app`). Used for donate embed links and Stripe success/cancel URLs.
+- Firebase / Stripe keys as needed.
+
+On Vercel, add the same variables in Project Settings → Environment Variables (Production).
+
 ## Install and run
 
 ```bash
