@@ -1,7 +1,8 @@
 "use client";
 
-import { deleteApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
+import { deleteApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
+import { getSharedFirebaseApp } from "@/lib/firebase/app";
 import { readFirebaseConfig } from "@/lib/firebase/config";
 
 let app: FirebaseApp | null = null;
@@ -19,8 +20,7 @@ export function getFirebaseApp(): FirebaseApp | null {
     void deleteApp(previous).catch(() => undefined);
   }
   if (!app) {
-    const existing = getApps()[0];
-    app = existing ?? initializeApp(config);
+    app = getSharedFirebaseApp();
     cachedApiKey = config.apiKey;
   }
   return app;

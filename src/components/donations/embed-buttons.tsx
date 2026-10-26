@@ -48,7 +48,10 @@ export function EmbedButtonsPanel() {
       organization,
       buttons,
       programs,
-    }).catch(() => undefined);
+    }).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : "Could not publish donate buttons.";
+      toast.error(message);
+    });
   }, [organization, buttons, programs]);
 
   const form = useForm<DonateButtonFormValues>({
