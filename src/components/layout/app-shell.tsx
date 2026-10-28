@@ -236,11 +236,12 @@ function MobileNav({ pinned, moreGroups }: { pinned: NavItem[]; moreGroups: { la
         Menu
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-[280px] sm:max-w-xs">
-          <SheetHeader>
+        <SheetContent side="right" className="w-[280px] overflow-hidden sm:max-w-xs">
+          <SheetHeader className="shrink-0">
             <SheetTitle>Navigate</SheetTitle>
           </SheetHeader>
-          <nav className="grid gap-5 px-4 pb-6" aria-label="Mobile">
+          <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6" aria-label="Mobile">
+            <div className="grid gap-5">
             <div>
               <p className="pb-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Pinned</p>
               <ul className="space-y-1">
@@ -294,6 +295,7 @@ function MobileNav({ pinned, moreGroups }: { pinned: NavItem[]; moreGroups: { la
               <LifeBuoy className="size-4" />
               Help and support
             </button>
+            </div>
           </nav>
         </SheetContent>
       </Sheet>
