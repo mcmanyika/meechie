@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { DEMO_ADMIN_EMAIL, STAFF_ROLES } from "@/config/constants";
 import { useSession } from "@/hooks/use-org";
 import { signOutAuth } from "@/lib/firebase/auth";
+import { upsertStaffAccount } from "@/lib/staff/accounts";
 import { useDemoStore } from "@/stores/demo-store";
 
 export default function PendingAccessPage() {
@@ -20,9 +21,14 @@ export default function PendingAccessPage() {
   useEffect(() => {
     if (!hydrated || !user) return;
     if (user.email.toLowerCase() === DEMO_ADMIN_EMAIL.toLowerCase() && user.accountStatus === "pending") {
-      enterByEmail(user.email);
+      void enterByEmail(user.email);
     }
   }, [hydrated, user, enterByEmail]);
+
+  useEffect(() => {
+    if (!hydrated || !user || user.accountStatus !== "pending") return;
+    void upsertStaffAccount(user);
+  }, [hydrated, user]);
 
   useEffect(() => {
     if (!hydrated) return;

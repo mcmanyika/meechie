@@ -50,7 +50,7 @@ export default function RegisterPage() {
             toast.error(auth.error);
             return;
           }
-          const result = registerUser({ name: values.name, email: values.email });
+          const result = await registerUser({ name: values.name, email: values.email });
           if (!result.ok) {
             toast.error(result.error);
             return;

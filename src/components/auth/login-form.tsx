@@ -26,6 +26,7 @@ function destinationForAccount(role: Role, accountStatus: AccountStatus) {
 export function LoginForm() {
   const hydrated = useDemoStore((state) => state.hydrated);
   const enterByEmail = useDemoStore((state) => state.enterByEmail);
+  const ensureStaffAccount = useDemoStore((state) => state.ensureStaffAccount);
   const router = useRouter();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -66,7 +67,20 @@ export function LoginForm() {
             toast.error(auth.error);
             return;
           }
-          const session = enterByEmail(auth.data.email ?? values.email);
+          const email = auth.data.email ?? values.email;
+          let session = await enterByEmail(email);
+          if (!session.ok) {
+            // Firebase Auth exists but app staff record is missing (e.g. registered on another browser).
+            const ensured = await ensureStaffAccount({
+              name: auth.data.displayName ?? email.split("@")[0] ?? "New user",
+              email,
+            });
+            if (!ensured.ok) {
+              toast.error(ensured.error);
+              return;
+            }
+            session = await enterByEmail(email);
+          }
           if (!session.ok) {
             toast.error(session.error);
             return;

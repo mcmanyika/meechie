@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState, PageHeader } from "@/components/shared/feedback";
 import { RequireAccess } from "@/components/shared/require-access";
@@ -19,8 +19,22 @@ const ACTIVATABLE_ROLES = STAFF_ROLES;
 export default function UsersPage() {
   const { organization, db, user: currentUser } = useSession();
   const activateUser = useDemoStore((state) => state.activateUser);
+  const syncStaffAccounts = useDemoStore((state) => state.syncStaffAccounts);
   const [search, setSearch] = useState("");
   const [roleDrafts, setRoleDrafts] = useState<Record<string, Role>>({});
+  const [syncing, setSyncing] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      setSyncing(true);
+      await syncStaffAccounts();
+      if (!cancelled) setSyncing(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [syncStaffAccounts]);
 
   const orgUsers = useMemo(
     () => db.users.filter((person) => person.organizationId === organization?.id),
@@ -124,11 +138,19 @@ export default function UsersPage() {
           </div>
           {filteredPending.length === 0 ? (
             <EmptyState
-              title={pendingUsers.length === 0 ? "No pending accounts" : "No matches"}
+              title={
+                syncing
+                  ? "Checking registrations…"
+                  : pendingUsers.length === 0
+                    ? "No pending accounts"
+                    : "No matches"
+              }
               body={
-                pendingUsers.length === 0
-                  ? "When someone registers, they appear here for classification and activation."
-                  : "Try a different search."
+                syncing
+                  ? "Loading shared registrations."
+                  : pendingUsers.length === 0
+                    ? "When someone registers, they appear here for classification and activation."
+                    : "Try a different search."
               }
             />
           ) : (

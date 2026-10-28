@@ -25,6 +25,13 @@ import {
   type StripePaymentNotice,
 } from "@/lib/domain/workflows";
 import { publishGivingProfile } from "@/lib/giving/publish-client";
+import {
+  buildPendingUser,
+  getStaffAccountByEmail,
+  listStaffAccounts,
+  mergeStaffUsers,
+  upsertStaffAccount,
+} from "@/lib/staff/accounts";
 import type {
   Announcement,
   AssistanceRequest,
@@ -61,8 +68,10 @@ interface DemoStore {
   hydrate: () => Promise<void>;
   resetDemo: () => Promise<void>;
   enterDemo: (userId?: string) => void;
-  enterByEmail: (email: string) => Result<{ role: User["role"]; accountStatus: User["accountStatus"] }>;
-  registerUser: (input: { name: string; email: string }) => Result<User>;
+  enterByEmail: (email: string) => Promise<Result<{ role: User["role"]; accountStatus: User["accountStatus"] }>>;
+  registerUser: (input: { name: string; email: string }) => Promise<Result<User>>;
+  ensureStaffAccount: (input: { name: string; email: string }) => Promise<Result<User>>;
+  syncStaffAccounts: () => Promise<void>;
   activateUser: (userId: string, role: User["role"]) => Result<User>;
   exitDemo: () => void;
   setOrg: (orgId: string) => void;
@@ -212,6 +221,24 @@ export const useDemoStore = create<DemoStore>((set, get) => {
       });
       if (resolved) sessionFrom({ ...get(), userId: resolved.id, orgId: MEECHIE_ORG_ID });
       void demoRepository.save(db);
+      void get().syncStaffAccounts();
+    },
+
+    syncStaffAccounts: async () => {
+      try {
+        const remote = await listStaffAccounts();
+        if (!remote.length) return;
+        const db = get().db;
+        const mergedUsers = mergeStaffUsers(db.users, remote);
+        if (mergedUsers.length === db.users.length && mergedUsers.every((user, index) => user === db.users[index])) {
+          return;
+        }
+        const next = { ...db, users: mergedUsers };
+        set({ db: next });
+        void demoRepository.save(next);
+      } catch {
+        // Firestore may be offline or rules not deployed yet.
+      }
     },
 
     resetDemo: async () => {
@@ -234,65 +261,85 @@ export const useDemoStore = create<DemoStore>((set, get) => {
       sessionFrom(get());
     },
 
-    enterByEmail: (email) => {
+    enterByEmail: async (email) => {
       const normalized = email.trim().toLowerCase();
       if (normalized === DEMO_ADMIN_EMAIL.toLowerCase()) {
         const { db, admin } = ensurePrimaryAdmin(get().db);
         commit(db);
         set({ userId: admin.id, orgId: MEECHIE_ORG_ID });
         sessionFrom(get());
+        void upsertStaffAccount(admin);
         return { ok: true, data: { role: admin.role, accountStatus: "active" } };
       }
-      const user = get().db.users.find((item) => item.email.toLowerCase() === normalized);
+      let user = get().db.users.find((item) => item.email.toLowerCase() === normalized);
+      if (!user) {
+        try {
+          const remote = await getStaffAccountByEmail(normalized);
+          if (remote) {
+            const nextUsers = mergeStaffUsers(get().db.users, [remote]);
+            commit({ ...get().db, users: nextUsers });
+            user = nextUsers.find((item) => item.email.toLowerCase() === normalized);
+          }
+        } catch {
+          // remote lookup optional
+        }
+      }
       if (!user) return fail("No The Meechie Project account is linked to this email yet.");
       set({ userId: user.id, orgId: MEECHIE_ORG_ID });
       sessionFrom(get());
       return { ok: true, data: { role: user.role, accountStatus: user.accountStatus ?? "active" } };
     },
 
-    registerUser: (input) => {
+    registerUser: async (input) => get().ensureStaffAccount(input),
+
+    ensureStaffAccount: async (input) => {
       const email = input.email.trim().toLowerCase();
+      const name = input.name.trim() || email.split("@")[0] || "New user";
+      if (!email) return fail("Email is required.");
+
       if (email === DEMO_ADMIN_EMAIL.toLowerCase()) {
         const { db, admin } = ensurePrimaryAdmin(get().db);
         const now = new Date().toISOString();
         const named: User = {
           ...admin,
-          name: input.name.trim() || admin.name,
-          avatarInitials: (input.name.trim() || admin.name)
-            .split(/\s+/)
-            .filter(Boolean)
-            .slice(0, 2)
-            .map((part) => part[0]?.toUpperCase() ?? "")
-            .join("") || "PM",
+          name: name || admin.name,
+          avatarInitials:
+            (name || admin.name)
+              .split(/\s+/)
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((part) => part[0]?.toUpperCase() ?? "")
+              .join("") || "PM",
           updatedAt: now,
         };
         commit({ ...db, users: db.users.map((item) => (item.id === named.id ? named : item)) });
         set({ userId: named.id, orgId: MEECHIE_ORG_ID });
         sessionFrom(get());
+        void upsertStaffAccount(named);
         return { ok: true, data: named };
       }
-      if (get().db.users.some((item) => item.email.toLowerCase() === email)) {
-        return fail("An account with this email already exists. Sign in instead.");
+
+      let existing = get().db.users.find((item) => item.email.toLowerCase() === email);
+      if (!existing) {
+        try {
+          const remote = await getStaffAccountByEmail(email);
+          if (remote) {
+            const nextUsers = mergeStaffUsers(get().db.users, [remote]);
+            commit({ ...get().db, users: nextUsers });
+            existing = nextUsers.find((item) => item.email.toLowerCase() === email);
+          }
+        } catch {
+          // create locally if remote miss
+        }
       }
-      const now = new Date().toISOString();
-      const name = input.name.trim();
-      const user: User = {
-        id: createId("user"),
-        organizationId: MEECHIE_ORG_ID,
-        name,
-        email,
-        role: "community_member",
-        title: "Pending staff access",
-        avatarInitials: name
-          .split(/\s+/)
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((part) => part[0]?.toUpperCase() ?? "")
-          .join("") || "CM",
-        accountStatus: "pending",
-        createdAt: now,
-        updatedAt: now,
-      };
+      if (existing) {
+        set({ userId: existing.id, orgId: MEECHIE_ORG_ID });
+        sessionFrom(get());
+        void upsertStaffAccount(existing);
+        return { ok: true, data: existing };
+      }
+
+      const user = buildPendingUser({ name, email });
       commit(
         appendAudit(
           { ...get().db, users: [user, ...get().db.users] },
@@ -306,6 +353,11 @@ export const useDemoStore = create<DemoStore>((set, get) => {
       );
       set({ userId: user.id, orgId: MEECHIE_ORG_ID });
       sessionFrom(get());
+      try {
+        await upsertStaffAccount(user);
+      } catch {
+        // local registration still works if Firestore write fails
+      }
       return { ok: true, data: user };
     },
 
@@ -342,6 +394,7 @@ export const useDemoStore = create<DemoStore>((set, get) => {
             : `${who.data.name} classified ${user.name} as ${ROLE_LABELS[role]}.`,
         ),
       );
+      void upsertStaffAccount(user);
       return { ok: true, data: user };
     },
 

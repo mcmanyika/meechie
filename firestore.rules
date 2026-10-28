@@ -14,5 +14,13 @@ service cloud.firestore {
       allow create, update: if sessionId.matches('cs_.*');
       allow delete: if false;
     }
+
+    // Staff registration / activation records shared across browsers.
+    // Doc id is the lowercased email.
+    match /staffAccounts/{email} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if request.auth != null;
+    }
   }
 }
